@@ -7,7 +7,7 @@ musicfab 用开源模型与库重新实现六个常见商业音乐工具的核�
 | AnthemScore（音频→乐谱） | `musicfab transcribe` | piano_transcription_inference / basic-pitch / MT3 + Beat-This + music21 |
 | Melodyne（音符级修音/变调） | `musicfab shift` / `musicfab notes` | librosa 相位声码器（逐音变调/时值/力度，仅重合成被编辑片段） |
 | Transcribe!（慢放/循环/移调） | `musicfab practice` | librosa / Rubber Band + 循环切片 |
-| RipX（分轨+转谱+DAW） | `musicfab separate` + `daw` | Demucs + Basic Pitch + 多轨 MIDI 工程包 |
+| RipX（分轨+转谱+DAW） | `musicfab rip` / `separate` + `daw` + `score` | Demucs + Basic Pitch + 多轨 MIDI/总谱一键出 |
 | Capella（记谱/排版） | `musicfab notation` / `score` | music21 + Verovio + resvg，多轨总谱 |
 | Guitar Pro（六线谱） | `musicfab tab` | PyGuitarPro 读取 gp3/gp4/gp5 + 自研六线谱 SVG/HTML 渲染 |
 
@@ -39,6 +39,7 @@ musicfab transcribe song.mp3 --auto-tempo --quantize-beats 2 -o out.mid  # 八�
 musicfab separate song.mp3 --transcribe --auto-tempo -o stems/  # 分轨+逐轨转谱
 musicfab daw stems/ -o stems/daw/                    # 打包 DAW 工程
 musicfab score stems/ -o full.pdf --quantize-beats 1  # 分轨合成总谱
+musicfab rip song.wav -o out/ --quantize-beats 1     # RipX 式一键工作流
 ```
 
 ## 子命令
@@ -57,6 +58,7 @@ musicfab score stems/ -o full.pdf --quantize-beats 1  # 分轨合成总谱
 | `tab` | 六线谱导入/渲染（Guitar Pro 替代） | ✅ `.gp3/.gp4/.gp5` → JSON/MIDI/MusicXML/SVG/HTML |
 | `beats` | 速度/拍点/下拍估计 | ✅ 输出 JSON（tempo/beats/downbeats + 低频重音相位/置信度） |
 | `daw` | 分轨工程打包（RipX 替代） | ✅ 多轨 MIDI + tracks.json + README + 拍点/小节 `grid.json` |
+| `rip` | 一键工作流：分轨→转谱→DAW→总谱（RipX 替代） | ✅ 一条命令产出 stems/projects/MIDI/daw/score |
 
 ## 安装可选后端
 

@@ -95,7 +95,10 @@ def build_bundle(
     for path in project_files:
         projects.append((_stem_name(path), Project.load(path)))
 
+    dominant = max(projects, key=lambda item: len(item[1].notes))
     first_tempo = next((p.tempo for _, p in projects if p.tempo), 120.0)
+    if dominant[1].tempo:
+        first_tempo = dominant[1].tempo
     tempo_value = float(tempo if tempo is not None else first_tempo)
     signature = "4/4"
     for _, p in projects:

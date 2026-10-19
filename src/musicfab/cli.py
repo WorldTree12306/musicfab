@@ -139,6 +139,23 @@ def cmd_separate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_rip(args: argparse.Namespace) -> int:
+    from .modules.workflow import rip
+
+    result = rip(
+        args.audio,
+        args.output_dir,
+        model=args.model,
+        auto_tempo=not args.no_auto_tempo,
+        quantize_beats=args.quantize_beats,
+        chunk_seconds=args.chunk_seconds,
+        make_score=not args.no_score,
+        score_format=args.score_format,
+    )
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+    return 0
+
+
 def cmd_score(args: argparse.Namespace) -> int:
     from .modules.score import build_score
 
@@ -249,6 +266,17 @@ def build_parser() -> argparse.ArgumentParser:
     psep.add_argument("--quantize-beats", type=int, default=0, metavar="SUBDIV",
                       help="snap each stem's notes to the beat grid (0 = off)")
     psep.set_defaults(func=cmd_separate)
+
+    prip = sub.add_parser("rip", help="one command: separate -> transcribe -> DAW + score (RipX workflow)")
+    prip.add_argument("audio")
+    prip.add_argument("-o", "--output-dir", required=True)
+    prip.add_argument("--model", default="htdemucs")
+    prip.add_argument("--no-auto-tempo", action="store_true", help="skip per-stem tempo detection")
+    prip.add_argument("--quantize-beats", type=int, default=0, metavar="SUBDIV")
+    prip.add_argument("--chunk-seconds", type=float, default=0.0)
+    prip.add_argument("--no-score", action="store_true", help="skip multi-part score generation")
+    prip.add_argument("--score-format", default="pdf", choices=["pdf", "png", "svg", "musicxml"])
+    prip.set_defaults(func=cmd_rip)
 
     psc = sub.add_parser("score", help="combine stem projects into one multi-part score (Capella/RipX)")
     psc.add_argument("input_dir", help="directory produced by 'separate --transcribe'")

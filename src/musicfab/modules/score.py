@@ -51,9 +51,10 @@ def build_score(
 
     projects = [( _stem_name(p), Project.load(p)) for p in files]
     first = projects[0][1]
-    tempo = float(first.tempo or 120.0)
-    signature = getattr(first, "time_signature", "4/4") or "4/4"
-    beats = list(first.beats or [])
+    dominant = max(projects, key=lambda item: len(item[1].notes))[1]
+    tempo = float(dominant.tempo or first.tempo or 120.0)
+    signature = getattr(dominant, "time_signature", None) or getattr(first, "time_signature", "4/4") or "4/4"
+    beats = list(dominant.beats or first.beats or [])
 
     combined = Project(
         name=name or root.name or "score",

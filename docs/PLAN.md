@@ -28,6 +28,7 @@
 - 验收：4 轨输出 + 44.1k 采样率 + stems.json 清单 ✅（5.3s 音频 CPU 9.4s）；长音频分块 overlap-add（memmap，低内存）✅
 - DAW 交付：`modules/daw.py` 生成多轨 MIDI + tracks.json + README（Ardour/LMMS/Reaper 可导入）✅
 - 总谱：`modules/score.py` 把每轨工程合成多声部总谱（MusicXML/PDF/PNG/SVG）✅
+- 一键工作流：`modules/workflow.py`（分轨→转谱→DAW→总谱）✅
 
 ## Phase 4 — notation（Capella）/ tab（Guitar Pro）✅
 - notation：MusicXML/MIDI 互转（music21）、SVG（Verovio）、PDF/PNG（PyMuPDF 内置；MuseScore 可选更佳排版）
