@@ -139,6 +139,17 @@ def cmd_separate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_doctor(args: argparse.Namespace) -> int:
+    from .modules.doctor import collect
+
+    report = collect()
+    print(json.dumps(report, indent=2, ensure_ascii=False))
+    if args.strict and not report["required_ok"]:
+        print("required dependencies are missing", file=sys.stderr)
+        return 2
+    return 0
+
+
 def cmd_rip(args: argparse.Namespace) -> int:
     from .modules.workflow import rip
 
@@ -266,6 +277,10 @@ def build_parser() -> argparse.ArgumentParser:
     psep.add_argument("--quantize-beats", type=int, default=0, metavar="SUBDIV",
                       help="snap each stem's notes to the beat grid (0 = off)")
     psep.set_defaults(func=cmd_separate)
+
+    pdoc = sub.add_parser("doctor", help="check dependencies/backends and feature availability")
+    pdoc.add_argument("--strict", action="store_true", help="exit non-zero if required deps are missing")
+    pdoc.set_defaults(func=cmd_doctor)
 
     prip = sub.add_parser("rip", help="one command: separate -> transcribe -> DAW + score (RipX workflow)")
     prip.add_argument("audio")

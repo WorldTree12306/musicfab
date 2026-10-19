@@ -26,6 +26,7 @@ musicfab 用开源模型与库重新实现六个常见商业音乐工具的核�
 ```bash
 python -m pip install -e .
 musicfab --version
+musicfab doctor                # 检查依赖与可用功能
 musicfab probe your_song.mp3
 musicfab transcribe your_song.mp3 -o out.mid --musicxml out.musicxml
 musicfab notes your_song.mp3 -o edits.json      # 生成逐音编辑表
@@ -47,6 +48,7 @@ musicfab rip song.wav -o out/ --quantize-beats 1     # RipX 式一键工作流
 | 命令 | 说明 | 状态 |
 |---|---|---|
 | `probe` | 查看音频信息（格式/采样率/时长/声道） | ✅ |
+| `doctor` | 环境自检：依赖/后端/模型缓存/功能可用性（`--strict`） | ✅ |
 | `transcribe` | 音频转 MIDI/MusicXML（AnthemScore 替代） | ✅ basic-pitch(ONNX) / PTI；`--auto-tempo` 自动测速；`--quantize-beats` 按拍点量化 |
 | `practice` | 变速/移调/循环练习（Transcribe! 替代） | ✅ `--loop-beats N` 按拍点、`--loop-bars N` 按小节循环 |
 | `gui` | 离线练习播放器（波形/拖拽 A/B 选区/变速/移调/按小节循环） | ✅ `pip install "musicfab[gui]"` 后 `musicfab gui file.wav` |
