@@ -145,6 +145,7 @@ def transcribe(
     quantize: float | None = None,
     tempo: float = 120.0,
     time_signature: str = "4/4",
+    beats: list[float] | None = None,
 ) -> Project:
     """Transcribe an audio file into a :class:`Project`.
 
@@ -188,6 +189,7 @@ def transcribe(
         backend=backend,
     )
     proj.tracks = [Track(name=src.stem, notes=notes)]
+    proj.beats = [round(float(b), 4) for b in (beats or [])]
 
     if output_midi:
         to_midi(proj, output_midi)

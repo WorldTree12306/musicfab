@@ -28,19 +28,43 @@ def cmd_probe(args: argparse.Namespace) -> int:
 
 def cmd_transcribe(args: argparse.Namespace) -> int:
     from .modules.transcribe import transcribe
-    from .core.project import Project
+
+    tempo, time_signature, beats = args.tempo, args.time_signature, None
+    if args.auto_tempo:
+        from .modules.beats import detect_beats
+
+        info = detect_beats(args.audio)
+        tempo = info["tempo"]
+        time_signature = info["time_signature"]
+        beats = info["beats"]
+        print(f"auto tempo: {tempo:.2f} BPM, {len(beats)} beats")
 
     proj = transcribe(
         args.audio,
         model=args.model,
         output_midi=args.output,
         output_musicxml=args.musicxml,
-        tempo=args.tempo,
-        time_signature=args.time_signature,
+        tempo=tempo,
+        time_signature=time_signature,
+        beats=beats,
     )
     out = Path(args.save) if args.save else Path(args.audio).with_suffix(".mfproj.json")
     proj.save(out)
     print(f"saved project: {out}")
+    return 0
+
+
+def cmd_beats(args: argparse.Namespace) -> int:
+    from .modules.beats import detect_beats
+
+    info = detect_beats(args.audio, beats_per_bar=args.beats_per_bar)
+    if args.output:
+        out = Path(args.output)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(info, indent=1, ensure_ascii=False), encoding="utf-8")
+        print(f"saved beats: {out} (tempo {info['tempo']} BPM, {len(info['beats'])} beats)")
+    else:
+        print(json.dumps(info, indent=1, ensure_ascii=False))
     return 0
 
 
@@ -120,6 +144,7 @@ def build_parser() -> argparse.ArgumentParser:
     pt.add_argument("--model", default="auto", help="model backend: auto|pti|basicpitch")
     pt.add_argument("--tempo", type=float, default=120.0, help="tempo for MIDI/MusicXML export")
     pt.add_argument("--time-signature", default="4/4", help="time signature for export, e.g. 3/4")
+    pt.add_argument("--auto-tempo", action="store_true", help="detect tempo/beats automatically")
     pt.add_argument("--save", help="project JSON path")
     pt.set_defaults(func=cmd_transcribe)
 
@@ -136,6 +161,12 @@ def build_parser() -> argparse.ArgumentParser:
     ps.add_argument("--semitones", type=float, required=True)
     ps.add_argument("-o", "--output", required=True)
     ps.set_defaults(func=cmd_shift)
+
+    pb = sub.add_parser("beats", help="tempo / beat / downbeat estimation")
+    pb.add_argument("audio")
+    pb.add_argument("-o", "--output", help="write beats JSON (default: print)")
+    pb.add_argument("--beats-per-bar", type=int, default=4)
+    pb.set_defaults(func=cmd_beats)
 
     pnotes = sub.add_parser("notes", help="detect/edit individual notes and resynthesise (Melodyne alternative)")
     pnotes.add_argument("audio")
