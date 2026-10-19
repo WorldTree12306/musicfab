@@ -14,14 +14,14 @@
 - 节奏层：`modules/beats.py`（librosa DP 拍点）+ `transcribe --auto-tempo` 自动写 tempo/beats ✅
 
 ## Phase 2 — practice（Transcribe!）/ shift（Melodyne）✅
-- practice：librosa 变速/移调/循环切片 + `.practice.json` 参数记录
+- practice：librosa 变速/移调/循环切片 + `.practice.json` 参数记录；`--loop-beats` 按拍点循环 ✅
 - shift：相位声码器变调（音频级）+ `shift_notes`（谱面级，不改音频）
 - notes：逐音编辑（semitones / start_shift / duration_scale / velocity_scale），只重合成被编辑片段，其余原音保留 ✅
 - 验收：0.5x 时长≈2x（容差 25%）✅；+12 半音主频≈2x ✅
 
 ## Phase 3 — separate（RipX）✅
 - Demucs htdemucs（4 轨：drums/bass/other/vocals），权重首次自动下载（80 MB）
-- `--transcribe` 可对每轨复用 Phase 1 生成 `.mfproj.json`
+- `--transcribe` 可对每轨复用 Phase 1 生成 `.mfproj.json`；`--auto-tempo` 每轨自动测速 ✅
 - 验收：4 轨输出 + 44.1k 采样率 + stems.json 清单 ✅（5.3s 音频 CPU 9.4s）
 
 ## Phase 4 — notation（Capella）/ tab（Guitar Pro）✅

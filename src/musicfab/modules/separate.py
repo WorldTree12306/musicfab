@@ -33,6 +33,9 @@ def separate(
     shifts: int = 0,
     overlap: float = 0.25,
     transcribe_stems: bool = False,
+    auto_tempo: bool = False,
+    tempo: float = 120.0,
+    time_signature: str = "4/4",
 ) -> dict:
     """Split ``audio`` into stems written as WAV files under ``output_dir``.
 
@@ -85,10 +88,24 @@ def separate(
         transcriptions = {}
         for name, path in stems.items():
             try:
-                proj = transcribe(path, model="basicpitch")
+                info = None
+                if auto_tempo:
+                    from .beats import detect_beats
+
+                    info = detect_beats(path)
+                proj = transcribe(
+                    path,
+                    model="basicpitch",
+                    tempo=info["tempo"] if info else tempo,
+                    time_signature=info["time_signature"] if info else time_signature,
+                    beats=info["beats"] if info else None,
+                )
                 proj_path = out_dir / f"{name}.mfproj.json"
                 proj.save(proj_path)
-                transcriptions[name] = {"notes": len(proj.notes), "project": str(proj_path)}
+                entry = {"notes": len(proj.notes), "project": str(proj_path)}
+                if info:
+                    entry["tempo"] = info["tempo"]
+                transcriptions[name] = entry
             except Exception as exc:  # keep separation usable even if a stem is silent
                 transcriptions[name] = {"error": str(exc)}
         manifest["transcriptions"] = transcriptions

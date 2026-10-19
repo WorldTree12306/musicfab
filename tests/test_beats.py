@@ -63,3 +63,19 @@ def test_transcribe_auto_tempo_cli(tmp_path: Path):
     assert data["tempo"] > 0
     assert data["beats"], "auto tempo should populate beats"
     assert data["time_signature"].endswith("/4")
+
+
+def test_practice_loop_beats(tmp_path):
+    pytest.importorskip("librosa")
+    src = FIX / "drums.wav"
+    if not src.exists():
+        pytest.skip("fixture drums.wav missing")
+    from musicfab.modules.practice import practice
+
+    out = practice(src, beat_loop=2, output=tmp_path / "loop.wav")
+    assert out.exists()
+    info = sf.info(str(out))
+    assert 0.3 < info.frames / info.samplerate < 8.0
+    meta = json.loads(Path(str(out) + ".practice.json").read_text(encoding="utf-8"))
+    assert meta["beat_loop"] == 2
+    assert meta["loop"] and meta["loop"][1] > meta["loop"][0]

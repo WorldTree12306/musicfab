@@ -72,7 +72,8 @@ def cmd_practice(args: argparse.Namespace) -> int:
     from .modules.practice import practice
 
     practice(args.audio, tempo=args.tempo, semitones=args.semitones,
-             loop=tuple(args.loop) if args.loop else None, output=args.output)
+             loop=tuple(args.loop) if args.loop else None,
+             beat_loop=args.loop_beats, beat_start=args.beat_start, output=args.output)
     return 0
 
 
@@ -107,6 +108,8 @@ def cmd_separate(args: argparse.Namespace) -> int:
         model=args.model,
         output_dir=args.output_dir,
         transcribe_stems=args.transcribe,
+        auto_tempo=args.auto_tempo,
+        tempo=args.tempo,
         shifts=args.shifts,
     )
     print(json.dumps(manifest, indent=2, ensure_ascii=False))
@@ -153,6 +156,8 @@ def build_parser() -> argparse.ArgumentParser:
     pr.add_argument("--tempo", type=float, default=1.0, help="playback speed, 1.0 = original")
     pr.add_argument("--semitones", type=float, default=0.0)
     pr.add_argument("--loop", nargs=2, type=float, metavar=("START", "END"))
+    pr.add_argument("--loop-beats", type=int, help="loop N detected beats")
+    pr.add_argument("--beat-start", type=int, default=0, help="index of the first beat for --loop-beats")
     pr.add_argument("-o", "--output", required=True)
     pr.set_defaults(func=cmd_practice)
 
@@ -180,6 +185,8 @@ def build_parser() -> argparse.ArgumentParser:
     psep.add_argument("--model", default="htdemucs")
     psep.add_argument("-o", "--output-dir", required=True)
     psep.add_argument("--transcribe", action="store_true", help="also transcribe every stem to a project/MIDI")
+    psep.add_argument("--auto-tempo", action="store_true", help="detect tempo per stem during --transcribe")
+    psep.add_argument("--tempo", type=float, default=120.0, help="tempo used when --transcribe without --auto-tempo")
     psep.add_argument("--shifts", type=int, default=0, help="demucs shift averaging (higher = slower/better)")
     psep.set_defaults(func=cmd_separate)
 

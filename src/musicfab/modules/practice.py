@@ -32,6 +32,8 @@ def practice(
     tempo: float = 1.0,
     semitones: float = 0.0,
     loop: tuple[float, float] | None = None,
+    beat_loop: int | None = None,
+    beat_start: int = 0,
     output: str | Path,
 ) -> Path:
     """Render a practice version of ``audio``.
@@ -44,10 +46,32 @@ def practice(
         Pitch shift in semitones (float allowed).
     loop:
         Optional ``(start_seconds, end_seconds)`` excerpt.
+    beat_loop / beat_start:
+        Loop exactly ``beat_loop`` detected beats starting at beat index
+        ``beat_start`` (ignored when ``loop`` is given).  The beat grid is
+        detected automatically with :func:`musicfab.modules.beats.detect_beats`.
     """
     if tempo <= 0:
         raise ValueError("tempo must be positive")
     import librosa
+
+    if beat_loop and not loop:
+        from .beats import detect_beats
+
+        beats = detect_beats(audio)["beats"]
+        if len(beats) < 2:
+            raise ValueError("not enough beats detected for --loop-beats")
+        start_idx = max(0, int(beat_start))
+        end_idx = start_idx + int(beat_loop)
+        if start_idx >= len(beats) - 1:
+            raise ValueError(f"beat_start {start_idx} outside detected beats (0..{len(beats) - 2})")
+        start = beats[start_idx]
+        if end_idx < len(beats):
+            end = beats[end_idx]
+        else:  # extend the last interval
+            period = beats[-1] - beats[-2]
+            end = beats[-1] + (end_idx - (len(beats) - 1)) * period
+        loop = (start, end)
 
     data, sr = audio_io.load(audio, mono=True)
     input_duration = len(data) / sr
@@ -68,6 +92,8 @@ def practice(
         "tempo": float(tempo),
         "semitones": float(semitones),
         "loop": list(loop) if loop else None,
+        "beat_loop": int(beat_loop) if beat_loop else None,
+        "beat_start": int(beat_start) if beat_loop else None,
         "input_duration": round(input_duration, 3),
         "output_duration": round(len(data) / sr, 3),
     }

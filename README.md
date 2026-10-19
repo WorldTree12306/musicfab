@@ -25,6 +25,7 @@ musicfab notes your_song.mp3 --edits edits.json -o edited.wav
 musicfab notation out.musicxml -o out.pdf -f pdf   # 内置 PDF（PyMuPDF）
 musicfab tab song.gp5 -o tab.html -f html           # 六线谱渲染
 musicfab beats song.mp3 -o beats.json               # 节奏分析
+musicfab practice song.mp3 --loop-beats 8 -o loop.wav  # 按拍点循环
 ```
 
 ## 子命令
@@ -33,10 +34,10 @@ musicfab beats song.mp3 -o beats.json               # 节奏分析
 |---|---|---|
 | `probe` | 查看音频信息（格式/采样率/时长/声道） | ✅ |
 | `transcribe` | 音频转 MIDI/MusicXML（AnthemScore 替代） | ✅ basic-pitch(ONNX) / PTI；`--auto-tempo` 自动测速 |
-| `practice` | 变速/移调/循环练习（Transcribe! 替代） | ✅ |
+| `practice` | 变速/移调/循环练习（Transcribe! 替代） | ✅ 支持 `--loop-beats N` 按检测拍点循环 |
 | `shift` | 整段变调（Melodyne 替代） | ✅ |
 | `notes` | 逐音编辑 + 重合成（Melodyne 替代） | ✅ 变调/时值/力度，只改选中音符 |
-| `separate` | 分轨（RipX 替代） | ✅ htdemucs 4 轨，可 `--transcribe` 逐轨转谱 |
+| `separate` | 分轨（RipX 替代） | ✅ htdemucs 4 轨，`--transcribe` 逐轨转谱，`--auto-tempo` 每轨测速 |
 | `notation` | 记谱/排版/导出（Capella 替代） | ✅ MusicXML/MIDI/SVG/PDF/PNG（PDF/PNG 用 PyMuPDF，可选 MuseScore 更佳排版） |
 | `tab` | 六线谱导入/渲染（Guitar Pro 替代） | ✅ `.gp3/.gp4/.gp5` → JSON/MIDI/MusicXML/SVG/HTML |
 | `beats` | 速度/拍点/下拍估计 | ✅ 输出 JSON（tempo/beats/downbeats） |
