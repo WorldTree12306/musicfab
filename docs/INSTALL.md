@@ -70,3 +70,13 @@ musicfab 只通过子进程调用 MuseScore，不做链接，避免 GPL 传染�
 - `cairosvg` 需要系统 cairo DLL，通常不可用；PDF/PNG 优先走 MuseScore。
 - MP3 解码依赖 `soundfile` 的 libsndfile ≥ 1.2 或系统 ffmpeg；没有 ffmpeg 时请先转 WAV。
 - 所有模型权重缓存在 `%USERPROFILE%\.cache\torch\hub\checkpoints`（Demucs）与 basic-pitch 包内（230 KB）。
+
+## 7. 便携 exe 常见问题
+
+| 现象 | 原因 | 解决 |
+|---|---|---|
+| `[PYI-…] Could not create temporary directory!` | onefile 需要可写的 `%TEMP%`（部分安全策略/杀软会拦） | `set TEMP=D:\tmp` 后运行，或改用 `--onedir` 构建 |
+| `cannot cache function '__o_fold': no locator available` | 冻结包里 numba 无法建立 JIT 缓存 | 已在 `musicfab/__init__.py` 对 frozen 环境自动设置 `NUMBA_DISABLE_JIT=1` 并重编 |
+| 首次启动慢 | onefile 每轮都要解包 155 MB | 发布可用 `--onedir` 版本，启动更快 |
+
+> 便携包（lite）包含 transcribe/practice/shift/notation/tab；**分轨（demucs/torch）不打包**，需要源码安装。
