@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+models/
+*.wav
+*.mp3
+*.mid
+*.musicxml
+*.mxl
+*.svg
+*.pdf
+*.mfproj.json
+*.gp3
+*.gp4
+*.gp5
+*.gpx
+.pytest_cache/
+# fixtures are generated/downloaded locally (scripts/gen_test_audio.py, scripts/fetch_fixtures.py)
+tests/fixtures/*.wav
+tests/fixtures/*.mid
+tests/fixtures/*.gp5

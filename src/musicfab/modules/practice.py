@@ -1,0 +1,77 @@
+"""Speed / transpose / loop practice helper (Transcribe! alternative).
+
+Everything is offline: librosa's phase-vocoder is used for both time stretching
+and pitch shifting, so no external binaries are required.
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import numpy as np
+
+from ..core import audio as audio_io
+
+
+def _slice(data: np.ndarray, sr: int, loop: tuple[float, float] | None) -> np.ndarray:
+    if not loop:
+        return data
+    start, end = float(loop[0]), float(loop[1])
+    if end <= start:
+        raise ValueError(f"loop end ({end}) must be greater than start ({start})")
+    i0 = max(0, int(start * sr))
+    i1 = min(len(data), int(end * sr))
+    if i1 <= i0:
+        raise ValueError("loop range is outside the audio duration")
+    return data[i0:i1].copy()
+
+
+def practice(
+    audio: str | Path,
+    *,
+    tempo: float = 1.0,
+    semitones: float = 0.0,
+    loop: tuple[float, float] | None = None,
+    output: str | Path,
+) -> Path:
+    """Render a practice version of ``audio``.
+
+    Parameters
+    ----------
+    tempo:
+        Playback speed. ``0.5`` = half speed (longer), ``2.0`` = double speed.
+    semitones:
+        Pitch shift in semitones (float allowed).
+    loop:
+        Optional ``(start_seconds, end_seconds)`` excerpt.
+    """
+    if tempo <= 0:
+        raise ValueError("tempo must be positive")
+    import librosa
+
+    data, sr = audio_io.load(audio, mono=True)
+    input_duration = len(data) / sr
+    data = _slice(data, sr, loop)
+
+    if semitones:
+        data = librosa.effects.pitch_shift(data, sr=sr, n_steps=float(semitones))
+    if abs(tempo - 1.0) > 1e-9:
+        data = librosa.effects.time_stretch(data, rate=float(tempo))
+
+    out = Path(output)
+    audio_io.write(out, data.astype(np.float32), sr)
+
+    meta = {
+        "input": str(audio),
+        "output": str(out),
+        "sample_rate": sr,
+        "tempo": float(tempo),
+        "semitones": float(semitones),
+        "loop": list(loop) if loop else None,
+        "input_duration": round(input_duration, 3),
+        "output_duration": round(len(data) / sr, 3),
+    }
+    Path(str(out) + ".practice.json").write_text(
+        json.dumps(meta, indent=1, ensure_ascii=False), encoding="utf-8"
+    )
+    return out

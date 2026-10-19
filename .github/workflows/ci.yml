@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install package
+        run: |
+          python -m pip install -U pip
+          python -m pip install -e ".[dev]"
+      - name: Install ONNX transcription backend (no TensorFlow)
+        run: |
+          python -m pip install basic-pitch --no-deps
+          python -m pip install mir_eval scikit-learn "resampy>=0.4.2,<0.4.3"
+      - name: Generate test audio
+        run: python scripts/gen_test_audio.py
+      - name: Unit tests (slow model/stem tests excluded)
+        run: python -m pytest -q -m "not slow"
+      - name: CLI smoke test
+        run: |
+          python -m musicfab.cli version
+          python -m musicfab.cli probe tests/fixtures/melody.wav
