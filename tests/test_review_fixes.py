@@ -167,3 +167,28 @@ def test_detect_beats_octave_not_doubled(tmp_path: Path):
     sf.write(src, y, sr)
     info = detect_beats(src, start_bpm=120)
     assert 45 <= info["tempo"] <= 80, f"expected ~60 BPM, got {info['tempo']}"
+
+
+def test_tab_sustain_line_across_measure():
+    from musicfab.modules.tab import tab_to_svg
+
+    data = {
+        "tempo": 120,
+        "time_signature": "4/4",
+        "measures": [
+            {"index": 0, "start": 0.0, "duration": 2.0, "time_signature": "4/4"},
+            {"index": 1, "start": 2.0, "duration": 2.0, "time_signature": "4/4"},
+        ],
+        "tracks": [
+            {
+                "name": "gtr",
+                "strings": [64, 59, 55, 50, 45, 40],
+                "notes": [
+                    {"start": 1.0, "duration": 2.0, "pitch": 64, "string": 1, "fret": 3,
+                     "bar": 0, "bar_pos": 0.5},
+                ],
+            }
+        ],
+    }
+    svg = tab_to_svg(data, max_bars=2)
+    assert "class='tie'" in svg

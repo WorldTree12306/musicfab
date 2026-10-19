@@ -345,6 +345,15 @@ def tab_to_svg(data: dict, *, max_bars: int = 16) -> str:
                 f"<text x='{x:.1f}' y='{y - 3:.1f}' font-size='11' text-anchor='middle' "
                 f"fill='#000'>{fret}</text>"
             )
+            # sustain line when the note lasts past the current measure
+            duration = float(note.get("duration", 0.0))
+            bar_end = float(measures[bar].get("start", 0.0)) + float(measures[bar].get("duration", 0.0))
+            if duration > 0 and float(note.get("start", 0.0)) + duration > bar_end + 1e-6:
+                x_end = _LEFT + (bar + 1) * _BAR_WIDTH - 4
+                parts.append(
+                    f"<line x1='{x + 5:.1f}' y1='{y - 4:.1f}' x2='{x_end:.1f}' y2='{y - 4:.1f}' "
+                    f"stroke='#000' stroke-width='1' class='tie'/>"
+                )
         dropped_total += dropped
         y_cursor += block_height
 
