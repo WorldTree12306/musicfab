@@ -73,13 +73,30 @@ def main() -> int:
     timings["separate"] = time.time() - t0
     report.append(f"- separate: stems={list(manifest['stems'])}\n")
 
-    # 5) notation render (Capella alternative)
+    # 5) per-note edit (Melodyne alternative)
+    t0 = time.time()
+    from musicfab.modules.notes import apply_edits, write_template
+
+    edits = write_template(src, OUT / "demo_edits.json")
+    import json as _json
+
+    table = _json.loads(edits.read_text(encoding="utf-8"))
+    table["edits"][0]["semitones"] = 12
+    edits.write_text(_json.dumps(table, indent=1), encoding="utf-8")
+    stats = apply_edits(src, edits, output=OUT / "demo_note_edit.wav")
+    report.append(f"- notes: {stats['edits_applied']} edit(s), {stats['notes_detected']} notes detected")
+    report.append(chr(10))
+    timings["notes"] = time.time() - t0
+
+
+    # 6) notation render (Capella alternative)
     t0 = time.time()
     from musicfab.modules.notation import convert
 
     try:
         svg = convert(OUT / "demo.musicxml", output=OUT / "demo.svg", fmt="svg")
-        report.append(f"- notation: {svg.name} rendered\n")
+        pdf = convert(OUT / "demo.musicxml", output=OUT / "demo.pdf", fmt="pdf")
+        report.append(f"- notation: {svg.name} + {pdf.name} rendered\n")
     except Exception as exc:  # rendering is optional
         report.append(f"- notation: skipped ({exc})\n")
     timings["notation"] = time.time() - t0
