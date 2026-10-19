@@ -139,6 +139,24 @@ def cmd_separate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_score(args: argparse.Namespace) -> int:
+    from .modules.score import build_score
+
+    fmt = args.format
+    if not fmt:
+        suffix = Path(args.output).suffix.lower().lstrip(".")
+        fmt = "musicxml" if suffix in {"xml", "musicxml"} else (suffix or "musicxml")
+    path = build_score(
+        args.input_dir,
+        output=args.output,
+        fmt=fmt,
+        quantize_beats=args.quantize_beats or None,
+        name=args.name,
+    )
+    print(f"saved score: {path}")
+    return 0
+
+
 def cmd_notation(args: argparse.Namespace) -> int:
     from .modules.notation import convert
 
@@ -231,6 +249,14 @@ def build_parser() -> argparse.ArgumentParser:
     psep.add_argument("--quantize-beats", type=int, default=0, metavar="SUBDIV",
                       help="snap each stem's notes to the beat grid (0 = off)")
     psep.set_defaults(func=cmd_separate)
+
+    psc = sub.add_parser("score", help="combine stem projects into one multi-part score (Capella/RipX)")
+    psc.add_argument("input_dir", help="directory produced by 'separate --transcribe'")
+    psc.add_argument("-o", "--output", required=True)
+    psc.add_argument("-f", "--format", default="", choices=["", "musicxml", "midi", "pdf", "png", "svg"])
+    psc.add_argument("--quantize-beats", type=int, default=0, metavar="SUBDIV")
+    psc.add_argument("--name", help="score title")
+    psc.set_defaults(func=cmd_score)
 
     pn = sub.add_parser("notation", help="score engraving/export (Capella alternative)")
     pn.add_argument("input")

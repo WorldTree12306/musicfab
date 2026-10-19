@@ -8,7 +8,7 @@ musicfab 用开源模型与库重新实现六个常见商业音乐工具的核�
 | Melodyne（音符级修音/变调） | `musicfab shift` / `musicfab notes` | librosa 相位声码器（逐音变调/时值/力度，仅重合成被编辑片段） |
 | Transcribe!（慢放/循环/移调） | `musicfab practice` | librosa / Rubber Band + 循环切片 |
 | RipX（分轨+转谱+DAW） | `musicfab separate` + `daw` | Demucs + Basic Pitch + 多轨 MIDI 工程包 |
-| Capella（记谱/排版） | `musicfab notation` | MuseScore CLI / LilyPond / Verovio |
+| Capella（记谱/排版） | `musicfab notation` / `score` | music21 + Verovio + resvg，多轨总谱 |
 | Guitar Pro（六线谱） | `musicfab tab` | PyGuitarPro 读取 gp3/gp4/gp5 + 自研六线谱 SVG/HTML 渲染 |
 
 > **合规声明**：本项目是 clean-room 实现，只使用开源组件；不包含、不反编译、不分发任何商业软件（AnthemScore、Melodyne、Transcribe!、RipX、Capella、Guitar Pro）的代码、模型权重或授权数据。详见 `docs/LICENSES.md`。
@@ -17,9 +17,9 @@ musicfab 用开源模型与库重新实现六个常见商业音乐工具的核�
 
 ## 示例输出
 
-| 六线谱渲染（Guitar Pro 替代） | 乐谱排版（Capella 替代） |
-|---|---|
-| ![tab](docs/tab.png) | ![score](docs/score.png) |
+| 六线谱渲染（Guitar Pro 替代） | 乐谱排版（Capella 替代） | 分轨合成总谱 |
+|---|---|---|
+| ![tab](docs/tab.png) | ![score](docs/score.png) | ![full score](docs/score_full.png) |
 
 ## 快速开始
 
@@ -38,6 +38,7 @@ musicfab practice song.mp3 --loop-bars 1 -o bar.wav   # 按小节循环（用检
 musicfab transcribe song.mp3 --auto-tempo --quantize-beats 2 -o out.mid  # 八分音符网格量化
 musicfab separate song.mp3 --transcribe --auto-tempo -o stems/  # 分轨+逐轨转谱
 musicfab daw stems/ -o stems/daw/                    # 打包 DAW 工程
+musicfab score stems/ -o full.pdf --quantize-beats 1  # 分轨合成总谱
 ```
 
 ## 子命令
@@ -52,6 +53,7 @@ musicfab daw stems/ -o stems/daw/                    # 打包 DAW 工程
 | `notes` | 逐音编辑 + 重合成（Melodyne 替代） | ✅ 变调/时值/力度，只改选中音符 |
 | `separate` | 分轨（RipX 替代） | ✅ htdemucs 4 轨；分块 overlap-add；`--transcribe` 逐轨转谱 + `--auto-tempo` + `--quantize-beats` |
 | `notation` | 记谱/排版/导出（Capella 替代） | ✅ 支持 `.mfproj.json` 直接排版；`--quantize-beats` 量化；SVG/PDF/PNG（resvg+PyMuPDF） |
+| `score` | 分轨工程合成多轨总谱（Capella/RipX） | ✅ 每 stem 一个声部，可直接出 MusicXML/PDF/PNG/SVG |
 | `tab` | 六线谱导入/渲染（Guitar Pro 替代） | ✅ `.gp3/.gp4/.gp5` → JSON/MIDI/MusicXML/SVG/HTML |
 | `beats` | 速度/拍点/下拍估计 | ✅ 输出 JSON（tempo/beats/downbeats + 低频重音相位/置信度） |
 | `daw` | 分轨工程打包（RipX 替代） | ✅ 多轨 MIDI + tracks.json + README，Ardour/LMMS/Reaper 可导入 |
