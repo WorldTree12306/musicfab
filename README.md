@@ -37,7 +37,7 @@ musicfab practice song.mp3 --loop-beats 8 -o loop.wav  # 按拍点循环
 | `practice` | 变速/移调/循环练习（Transcribe! 替代） | ✅ 支持 `--loop-beats N` 按检测拍点循环 |
 | `shift` | 整段变调（Melodyne 替代） | ✅ |
 | `notes` | 逐音编辑 + 重合成（Melodyne 替代） | ✅ 变调/时值/力度，只改选中音符 |
-| `separate` | 分轨（RipX 替代） | ✅ htdemucs 4 轨，`--transcribe` 逐轨转谱，`--auto-tempo` 每轨测速 |
+| `separate` | 分轨（RipX 替代） | ✅ htdemucs 4 轨；分块 overlap-add（`--chunk-seconds`，长音频低内存）；`--transcribe` 逐轨转谱 + `--auto-tempo` |
 | `notation` | 记谱/排版/导出（Capella 替代） | ✅ MusicXML/MIDI/SVG/PDF/PNG（PDF/PNG 用 PyMuPDF，可选 MuseScore 更佳排版） |
 | `tab` | 六线谱导入/渲染（Guitar Pro 替代） | ✅ `.gp3/.gp4/.gp5` → JSON/MIDI/MusicXML/SVG/HTML |
 | `beats` | 速度/拍点/下拍估计 | ✅ 输出 JSON（tempo/beats/downbeats） |

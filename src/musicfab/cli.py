@@ -111,6 +111,7 @@ def cmd_separate(args: argparse.Namespace) -> int:
         auto_tempo=args.auto_tempo,
         tempo=args.tempo,
         shifts=args.shifts,
+        chunk_seconds=args.chunk_seconds,
     )
     print(json.dumps(manifest, indent=2, ensure_ascii=False))
     return 0
@@ -188,6 +189,8 @@ def build_parser() -> argparse.ArgumentParser:
     psep.add_argument("--auto-tempo", action="store_true", help="detect tempo per stem during --transcribe")
     psep.add_argument("--tempo", type=float, default=120.0, help="tempo used when --transcribe without --auto-tempo")
     psep.add_argument("--shifts", type=int, default=0, help="demucs shift averaging (higher = slower/better)")
+    psep.add_argument("--chunk-seconds", type=float, default=0.0,
+                      help="chunked overlap-add size (0 = auto above 4 minutes)")
     psep.set_defaults(func=cmd_separate)
 
     pn = sub.add_parser("notation", help="score engraving/export (Capella alternative)")

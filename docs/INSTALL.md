@@ -23,6 +23,7 @@ musicfab version
 | transcribe 钢琴增强 | `pip install piano_transcription_inference` | 是（首次下载权重） |
 | practice / shift | `pip install librosa` | 否 |
 | separate（RipX） | `pip install "demucs==4.0.1" --no-deps` + `pip install dora-search openunmix einops julius lameenc pyyaml tqdm` | 是（首次下载 80 MB htdemucs 权重） |
+> 长音频（>4 分钟）自动分块 overlap-add，内存只驻留单个分块；可用 `--chunk-seconds 30` 强制指定分块大小。
 | notation（Capella） | `pip install verovio pymupdf`（MuseScore 4 可选，排版更佳） | 否 |
 | tab（Guitar Pro） | `pip install pyguitarpro` | 否 |
 
