@@ -12,9 +12,10 @@
 - 实现：`modules/transcribe.py`（阈值/最短音长/量化、MIDI+MusicXML 导出）
 - 验收：`melody.wav` 转谱 12 音（C 大调序列吻合）✅；MusicXML 可被 music21/MuseScore 读入 ✅
 - 节奏层：`modules/beats.py`（librosa DP 拍点）+ `transcribe --auto-tempo` 自动写 tempo/beats ✅
+- 量化：`transcribe --quantize-beats N` 按检测拍点吸附（1=四分、2=八分…）✅
 
 ## Phase 2 — practice（Transcribe!）/ shift（Melodyne）✅
-- practice：librosa 变速/移调/循环切片 + `.practice.json` 参数记录；`--loop-beats` 按拍点循环 ✅
+- practice：librosa 变速/移调/循环切片 + `.practice.json` 参数记录；`--loop-beats` 按拍点、`--loop-bars` 按小节循环 ✅
 - shift：相位声码器变调（音频级）+ `shift_notes`（谱面级，不改音频）
 - notes：逐音编辑（semitones / start_shift / duration_scale / velocity_scale），只重合成被编辑片段，其余原音保留 ✅
 - 验收：0.5x 时长≈2x（容差 25%）✅；+12 半音主频≈2x ✅

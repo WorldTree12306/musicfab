@@ -26,6 +26,22 @@ def _slice(data: np.ndarray, sr: int, loop: tuple[float, float] | None) -> np.nd
     return data[i0:i1].copy()
 
 
+def _loop_from_beat_indices(beats: list[float], start_idx: int, end_idx: int) -> tuple[float, float]:
+    """Return a (start, end) excerpt spanning beat indices [start_idx, end_idx]."""
+    if len(beats) < 2:
+        raise ValueError("not enough beats detected for beat/bar loop")
+    if start_idx < 0 or start_idx >= len(beats) - 1:
+        raise ValueError(f"start beat index {start_idx} outside detected beats (0..{len(beats) - 2})")
+    start = beats[start_idx]
+    if end_idx < len(beats):
+        end = beats[end_idx]
+    else:  # extend the last interval, clamped to the audio later
+        period = beats[-1] - beats[-2]
+        end = beats[-1] + (end_idx - (len(beats) - 1)) * period
+    return start, end
+
+
+
 def practice(
     audio: str | Path,
     *,
@@ -34,6 +50,8 @@ def practice(
     loop: tuple[float, float] | None = None,
     beat_loop: int | None = None,
     beat_start: int = 0,
+    bar_loop: int | None = None,
+    bar_start: int = 0,
     output: str | Path,
 ) -> Path:
     """Render a practice version of ``audio``.
@@ -50,6 +68,8 @@ def practice(
         Loop exactly ``beat_loop`` detected beats starting at beat index
         ``beat_start`` (ignored when ``loop`` is given).  The beat grid is
         detected automatically with :func:`musicfab.modules.beats.detect_beats`.
+    bar_loop / bar_start:
+        Same, but counts whole bars using the detected time signature.
     """
     if tempo <= 0:
         raise ValueError("tempo must be positive")
@@ -60,26 +80,42 @@ def practice(
             raise ValueError("--loop-beats must be >= 1")
         if int(beat_start) < 0:
             raise ValueError("--beat-start must be >= 0")
-    beat_loop_ignored = bool(beat_loop and loop)
+    for flag, value in (("--loop-beats", beat_loop), ("--loop-bars", bar_loop)):
+        if value is not None and int(value) < 1:
+            raise ValueError(f"{flag} must be >= 1")
+    if int(beat_start) < 0 or int(bar_start) < 0:
+        raise ValueError("--beat-start/--bar-start must be >= 0")
+
+    beat_loop_ignored = bool((beat_loop or bar_loop) and loop)
     beat_meta = None
     if beat_loop and not loop:
         from .beats import detect_beats
 
         beats = detect_beats(audio)["beats"]
-        if len(beats) < 2:
-            raise ValueError("not enough beats detected for --loop-beats")
         start_idx = int(beat_start)
         end_idx = start_idx + int(beat_loop)
-        if start_idx >= len(beats) - 1:
-            raise ValueError(f"beat_start {start_idx} outside detected beats (0..{len(beats) - 2})")
-        start = beats[start_idx]
-        if end_idx < len(beats):
-            end = beats[end_idx]
-        else:  # extend the last interval, clamped to the audio below
-            period = beats[-1] - beats[-2]
-            end = beats[-1] + (end_idx - (len(beats) - 1)) * period
-        loop = (start, end)
+        loop = _loop_from_beat_indices(beats, start_idx, end_idx)
         beat_meta = {"beat_loop": int(beat_loop), "beat_start": start_idx}
+    elif bar_loop and not loop:
+        from .beats import detect_beats
+
+        info = detect_beats(audio)
+        beats = info["beats"]
+        try:
+            num = int(str(info.get("time_signature", "4/4")).split("/")[0])
+        except Exception:
+            num = 4
+        num = max(1, num)
+        start_idx = int(bar_start) * num
+        end_idx = start_idx + int(bar_loop) * num
+        loop = _loop_from_beat_indices(beats, start_idx, end_idx)
+        beat_meta = {
+            "beat_loop": int(bar_loop) * num,
+            "beat_start": start_idx,
+            "bar_loop": int(bar_loop),
+            "bar_start": int(bar_start),
+            "beats_per_bar": num,
+        }
 
     data, sr = audio_io.load(audio, mono=True)
     input_duration = len(data) / sr
@@ -111,6 +147,9 @@ def practice(
         "beat_loop_ignored": beat_loop_ignored,
         "beat_loop": beat_meta["beat_loop"] if beat_meta else None,
         "beat_start": beat_meta["beat_start"] if beat_meta else None,
+        "bar_loop": beat_meta.get("bar_loop") if beat_meta else None,
+        "bar_start": beat_meta.get("bar_start") if beat_meta else None,
+        "beats_per_bar": beat_meta.get("beats_per_bar") if beat_meta else None,
         "input_duration": round(input_duration, 3),
         "output_duration": round(len(data) / sr, 3),
     }

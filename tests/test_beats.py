@@ -90,3 +90,34 @@ def test_detect_beats_silence_falls_back(tmp_path):
     info = detect_beats(src, start_bpm=100)
     assert info["tempo"] == 100.0
     assert info["beats"] == []
+
+
+def test_transcribe_quantize_beats_snaps_to_grid():
+    pytest.importorskip("basic_pitch")
+    src = FIX / "melody.wav"
+    if not src.exists():
+        pytest.skip("fixture melody.wav missing")
+    from musicfab.modules.transcribe import transcribe
+
+    beats = [round(i * 0.5, 4) for i in range(40)]  # 120 BPM grid
+    proj = transcribe(src, model="basicpitch", tempo=120, beats=beats, quantize_beats=1)
+    assert proj.notes
+    for note in proj.notes:
+        assert abs(note.start / 0.5 - round(note.start / 0.5)) < 1e-3, f"{note.start} not on grid"
+
+
+def test_practice_loop_bars(tmp_path):
+    pytest.importorskip("librosa")
+    src = FIX / "drums.wav"
+    if not src.exists():
+        pytest.skip("fixture drums.wav missing")
+    from musicfab.modules.practice import practice
+
+    out = practice(src, bar_loop=1, output=tmp_path / "bar.wav")
+    assert out.exists()
+    info = sf.info(str(out))
+    duration = info.frames / info.samplerate
+    assert 0.5 < duration < 8.0
+    meta = json.loads(Path(str(out) + ".practice.json").read_text(encoding="utf-8"))
+    assert meta["bar_loop"] == 1
+    assert meta["beats_per_bar"] == 4

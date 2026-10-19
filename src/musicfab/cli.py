@@ -47,6 +47,7 @@ def cmd_transcribe(args: argparse.Namespace) -> int:
         tempo=tempo,
         time_signature=time_signature,
         beats=beats,
+        quantize_beats=args.quantize_beats,
     )
     out = Path(args.save) if args.save else Path(args.audio).with_suffix(".mfproj.json")
     proj.save(out)
@@ -86,7 +87,8 @@ def cmd_practice(args: argparse.Namespace) -> int:
 
     practice(args.audio, tempo=args.tempo, semitones=args.semitones,
              loop=tuple(args.loop) if args.loop else None,
-             beat_loop=args.loop_beats, beat_start=args.beat_start, output=args.output)
+             beat_loop=args.loop_beats, beat_start=args.beat_start,
+             bar_loop=args.loop_bars, bar_start=args.bar_start, output=args.output)
     return 0
 
 
@@ -162,6 +164,8 @@ def build_parser() -> argparse.ArgumentParser:
     pt.add_argument("--tempo", type=float, default=120.0, help="tempo for MIDI/MusicXML export")
     pt.add_argument("--time-signature", default="4/4", help="time signature for export, e.g. 3/4")
     pt.add_argument("--auto-tempo", action="store_true", help="detect tempo/beats automatically")
+    pt.add_argument("--quantize-beats", type=int, default=0, metavar="SUBDIV",
+                    help="snap notes to the beat grid (subdivisions per beat; 0 = off)")
     pt.add_argument("--save", help="project JSON path")
     pt.set_defaults(func=cmd_transcribe)
 
@@ -172,6 +176,8 @@ def build_parser() -> argparse.ArgumentParser:
     pr.add_argument("--loop", nargs=2, type=float, metavar=("START", "END"))
     pr.add_argument("--loop-beats", type=int, help="loop N detected beats")
     pr.add_argument("--beat-start", type=int, default=0, help="index of the first beat for --loop-beats")
+    pr.add_argument("--loop-bars", type=int, help="loop N detected bars (uses detected time signature)")
+    pr.add_argument("--bar-start", type=int, default=0, help="index of the first bar for --loop-bars")
     pr.add_argument("-o", "--output", required=True)
     pr.set_defaults(func=cmd_practice)
 

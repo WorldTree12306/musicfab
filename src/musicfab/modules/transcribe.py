@@ -62,6 +62,29 @@ def _merge_same_pitch(notes: list[Note], gap: float = 0.0) -> list[Note]:
     return merged
 
 
+def _snap_to_beat_grid(t: float, beats: list[float], subdivisions: int, fallback_period: float) -> float:
+    """Snap a time (seconds) to the beat grid with ``subdivisions`` per beat."""
+    if subdivisions < 1:
+        subdivisions = 1
+    if len(beats) >= 2 and beats[-1] > beats[0]:
+        import bisect
+
+        idx = bisect.bisect_right(beats, t) - 1
+        if idx < 0:
+            idx = 0
+        if idx >= len(beats) - 1:
+            period = beats[-1] - beats[-2]
+            step = period / subdivisions
+            k = round((t - beats[-1]) / step)
+            return beats[-1] + k * step
+        period = beats[idx + 1] - beats[idx]
+        step = period / subdivisions
+        k = round((t - beats[idx]) / step)
+        return beats[idx] + k * step
+    step = max(1e-6, fallback_period / subdivisions)
+    return round(t / step) * step
+
+
 def _basicpitch_notes(
     audio: Path,
     *,
@@ -143,6 +166,7 @@ def transcribe(
     frame_threshold: float = 0.3,
     min_note_ms: float = 50.0,
     quantize: float | None = None,
+    quantize_beats: int | None = None,
     tempo: float = 120.0,
     time_signature: str = "4/4",
     beats: list[float] | None = None,
@@ -156,6 +180,9 @@ def transcribe(
     quantize:
         If given, snap note starts/ends to the nearest multiple of this many
         seconds (e.g. ``0.125`` for a 32nd-note grid at 120 BPM).
+    quantize_beats:
+        Snap note starts/ends to a beat grid (subdivisions per beat, e.g. 2 =
+        eighth notes).  Beats are detected automatically when not provided.
     tempo, time_signature:
         Musical context used for MIDI/MusicXML export (transcription itself
         works on absolute seconds; no beat tracking is performed).
@@ -178,6 +205,23 @@ def transcribe(
             n.end = round(round(n.end / q) * q, 4)
             if n.end <= n.start:
                 n.end = round(n.start + q, 4)
+
+    if quantize_beats and quantize_beats >= 1:
+        beats_list = list(beats or [])
+        if not beats_list:
+            from .beats import detect_beats
+
+            beat_info = detect_beats(src, start_bpm=float(tempo))
+            beats_list = beat_info["beats"]
+            if "time_signature" in beat_info and beat_info["time_signature"] != "4/4":
+                time_signature = beat_info["time_signature"]
+        fallback_period = 60.0 / max(1e-6, float(tempo))
+        for n in notes:
+            n.start = round(_snap_to_beat_grid(n.start, beats_list, int(quantize_beats), fallback_period), 4)
+            n.end = round(_snap_to_beat_grid(n.end, beats_list, int(quantize_beats), fallback_period), 4)
+            if n.end <= n.start:
+                n.end = round(n.start + fallback_period / int(quantize_beats), 4)
+        beats = beats_list
 
     notes = _merge_same_pitch(notes)
     proj = Project.from_notes(

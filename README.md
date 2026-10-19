@@ -26,6 +26,8 @@ musicfab notation out.musicxml -o out.pdf -f pdf   # 内置 PDF（PyMuPDF）
 musicfab tab song.gp5 -o tab.html -f html           # 六线谱渲染
 musicfab beats song.mp3 -o beats.json               # 节奏分析
 musicfab practice song.mp3 --loop-beats 8 -o loop.wav  # 按拍点循环
+musicfab practice song.mp3 --loop-bars 1 -o bar.wav   # 按小节循环（用检测拍号）
+musicfab transcribe song.mp3 --auto-tempo --quantize-beats 2 -o out.mid  # 八分音符网格量化
 musicfab separate song.mp3 --transcribe --auto-tempo -o stems/  # 分轨+逐轨转谱
 musicfab daw stems/ -o stems/daw/                    # 打包 DAW 工程
 ```
@@ -35,8 +37,8 @@ musicfab daw stems/ -o stems/daw/                    # 打包 DAW 工程
 | 命令 | 说明 | 状态 |
 |---|---|---|
 | `probe` | 查看音频信息（格式/采样率/时长/声道） | ✅ |
-| `transcribe` | 音频转 MIDI/MusicXML（AnthemScore 替代） | ✅ basic-pitch(ONNX) / PTI；`--auto-tempo` 自动测速 |
-| `practice` | 变速/移调/循环练习（Transcribe! 替代） | ✅ 支持 `--loop-beats N` 按检测拍点循环 |
+| `transcribe` | 音频转 MIDI/MusicXML（AnthemScore 替代） | ✅ basic-pitch(ONNX) / PTI；`--auto-tempo` 自动测速；`--quantize-beats` 按拍点量化 |
+| `practice` | 变速/移调/循环练习（Transcribe! 替代） | ✅ `--loop-beats N` 按拍点、`--loop-bars N` 按小节循环 |
 | `shift` | 整段变调（Melodyne 替代） | ✅ |
 | `notes` | 逐音编辑 + 重合成（Melodyne 替代） | ✅ 变调/时值/力度，只改选中音符 |
 | `separate` | 分轨（RipX 替代） | ✅ htdemucs 4 轨；分块 overlap-add（`--chunk-seconds`，长音频低内存）；`--transcribe` 逐轨转谱 + `--auto-tempo` |
