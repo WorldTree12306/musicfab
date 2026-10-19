@@ -128,6 +128,25 @@ def build_bundle(
             }
         )
 
+    beats = next((list(p.beats) for _, p in projects if p.beats), [])
+    grid_path = None
+    if beats:
+        try:
+            per_bar = max(1, int(str(signature).split("/")[0]))
+        except Exception:
+            per_bar = 4
+        grid = {
+            "format": "musicfab-grid",
+            "version": 1,
+            "tempo": tempo_value,
+            "time_signature": signature,
+            "beats_per_bar": per_bar,
+            "beats": [round(float(b), 4) for b in beats],
+            "bars": [round(float(b), 4) for b in beats[::per_bar]],
+        }
+        grid_path = bundle_dir / "grid.json"
+        grid_path.write_text(json.dumps(grid, indent=1, ensure_ascii=False), encoding="utf-8")
+
     multitrack = _multitrack_midi(projects, tempo_value, signature, bundle_dir / f"{bundle_name}.mid")
     manifest = {
         "format": "musicfab-daw",
@@ -136,6 +155,7 @@ def build_bundle(
         "tempo": tempo_value,
         "time_signature": signature,
         "multitrack_midi": str(multitrack),
+        "grid": str(grid_path) if grid_path else None,
         "tracks": tracks,
     }
     (bundle_dir / "tracks.json").write_text(
@@ -147,6 +167,7 @@ def build_bundle(
         f"- tempo: {tempo_value:g} BPM, time signature {signature}",
         f"- multitrack MIDI: `{multitrack.name}` (one track per stem, tempo map included)",
         "- individual stem MIDI: `midi/<stem>.mid`",
+        *(["- beat/bar grid: `grid.json`"] if grid_path else []),
         "",
         "## Import",
         "",

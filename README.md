@@ -56,7 +56,7 @@ musicfab score stems/ -o full.pdf --quantize-beats 1  # 分轨合成总谱
 | `score` | 分轨工程合成多轨总谱（Capella/RipX） | ✅ 每 stem 一个声部，可直接出 MusicXML/PDF/PNG/SVG |
 | `tab` | 六线谱导入/渲染（Guitar Pro 替代） | ✅ `.gp3/.gp4/.gp5` → JSON/MIDI/MusicXML/SVG/HTML |
 | `beats` | 速度/拍点/下拍估计 | ✅ 输出 JSON（tempo/beats/downbeats + 低频重音相位/置信度） |
-| `daw` | 分轨工程打包（RipX 替代） | ✅ 多轨 MIDI + tracks.json + README，Ardour/LMMS/Reaper 可导入 |
+| `daw` | 分轨工程打包（RipX 替代） | ✅ 多轨 MIDI + tracks.json + README + 拍点/小节 `grid.json` |
 
 ## 安装可选后端
 

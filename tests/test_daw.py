@@ -17,9 +17,11 @@ def test_daw_bundle_from_projects(tmp_path: Path):
     src = tmp_path / "stems"
     src.mkdir()
     for name, pitch in (("drums", 36), ("bass", 40)):
-        Project.from_notes(
+        proj = Project.from_notes(
             [Note(0.0, 0.4, pitch), Note(0.5, 0.9, pitch + 2)], name=name, tempo=100
-        ).save(src / f"{name}.mfproj.json")
+        )
+        proj.beats = [0.0, 0.6, 1.2, 1.8]
+        proj.save(src / f"{name}.mfproj.json")
     (src / "drums.wav").write_bytes(b"RIFF0000")
     (src / "bass.wav").write_bytes(b"RIFF0000")
 
@@ -32,6 +34,10 @@ def test_daw_bundle_from_projects(tmp_path: Path):
     assert len(manifest["tracks"]) == 2
     assert all(t["notes"] == 2 for t in manifest["tracks"])
     assert manifest["tracks"][0]["audio"] and manifest["tracks"][0]["audio"].endswith(".wav")
+    grid = json.loads(Path(manifest["grid"]).read_text(encoding="utf-8"))
+    assert grid["beats"] == [0.0, 0.6, 1.2, 1.8]
+    assert grid["beats_per_bar"] == 4
+    assert grid["bars"] == [0.0]
 
     mid = mido.MidiFile(str(bundle / "demo.mid"))
     assert len(mid.tracks) == 3  # meta + 2 stem tracks

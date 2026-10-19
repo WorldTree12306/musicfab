@@ -18,7 +18,7 @@
 - **separate** — 分轨（RipX 替代）
   - Demucs htdemucs 4 轨；长音频自动分块 overlap-add（memmap，低内存）
   - `--transcribe` 逐轨转谱、`--auto-tempo` 每轨测速、`--quantize-beats` 逐轨量化
-- **daw** — 分轨工程打包为多轨 MIDI + `tracks.json` + README（Ardour/LMMS/Reaper 可导入）
+- **daw** — 分轨工程打包为多轨 MIDI + `tracks.json` + `grid.json`（拍点/小节）+ README（Ardour/LMMS/Reaper 可导入）
 - **score** — 分轨工程合成多轨总谱（MusicXML/PDF/PNG/SVG，可按拍点量化）
 - **notation** — 记谱/排版（Capella 替代）
   - MusicXML/MIDI 互转（music21）、SVG（Verovio）、PNG/PDF（resvg + PyMuPDF）
