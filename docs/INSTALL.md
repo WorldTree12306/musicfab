@@ -71,12 +71,23 @@ musicfab 只通过子进程调用 MuseScore，不做链接，避免 GPL 传染�
 - MP3 解码依赖 `soundfile` 的 libsndfile ≥ 1.2 或系统 ffmpeg；没有 ffmpeg 时请先转 WAV。
 - 所有模型权重缓存在 `%USERPROFILE%\.cache\torch\hub\checkpoints`（Demucs）与 basic-pitch 包内（230 KB）。
 
-## 7. 便携 exe 常见问题
+## 7. 便携 exe（lite）实测范围
+
+构建产物：`dist/musicfab.exe`（约 155 MB，onefile）。本机实测：
+
+| 子命令 | 便携包 | 说明 |
+|---|---|---|
+| `version` / `probe` | ✅ | |
+| `transcribe` | ✅ | basic-pitch ONNX 随包，无需 TF |
+| `notation` | ✅ | MusicXML/MIDI/SVG（Verovio） |
+| `tab` | ✅ | .gp3/.gp4/.gp5 |
+| `practice` / `shift` | ❌ | librosa 的 numba `vectorize` 在冻结包内无法缓存；请用源码安装 |
+| `separate` | ❌ | 需要 torch/demucs，未打包 |
+
+常见问题：
 
 | 现象 | 原因 | 解决 |
 |---|---|---|
-| `[PYI-…] Could not create temporary directory!` | onefile 需要可写的 `%TEMP%`（部分安全策略/杀软会拦） | `set TEMP=D:\tmp` 后运行，或改用 `--onedir` 构建 |
-| `cannot cache function '__o_fold': no locator available` | 冻结包里 numba 无法建立 JIT 缓存 | 已在 `musicfab/__init__.py` 对 frozen 环境自动设置 `NUMBA_DISABLE_JIT=1` 并重编 |
-| 首次启动慢 | onefile 每轮都要解包 155 MB | 发布可用 `--onedir` 版本，启动更快 |
-
-> 便携包（lite）包含 transcribe/practice/shift/notation/tab；**分轨（demucs/torch）不打包**，需要源码安装。
+| `[PYI-…] Could not create temporary directory!` | onefile 需要可写 `%TEMP%`（安全策略/杀软可能拦） | `set TEMP=D:\tmp` 后运行，或改用 `--onedir` |
+| `cannot cache function ... no locator available` | 冻结包内 numba 无法建立 JIT 缓存 | 已用 runtime hook 强制 `cache=False`；practice/shift 仍建议源码安装 |
+| 首次启动慢 | onefile 每轮解包 155 MB | 发布可用 `--onedir` 提高启动速度 |
