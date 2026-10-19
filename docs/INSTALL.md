@@ -24,7 +24,7 @@ musicfab version
 | practice / shift | `pip install librosa` | 否 |
 | separate（RipX） | `pip install "demucs==4.0.1" --no-deps` + `pip install dora-search openunmix einops julius lameenc pyyaml tqdm` | 是（首次下载 80 MB htdemucs 权重） |
 > 长音频（>4 分钟）自动分块 overlap-add，内存只驻留单个分块；可用 `--chunk-seconds 30` 强制指定分块大小。
-| notation（Capella） | `pip install verovio pymupdf`（MuseScore 4 可选，排版更佳） | 否 |
+| notation（Capella） | `pip install verovio pymupdf resvg-py`（MuseScore 4 可选，矢量排版更佳） | 否 |
 | tab（Guitar Pro） | `pip install pyguitarpro` | 否 |
 
 > Demucs 需要 torch：`pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu`（CPU 版约 200 MB）。
@@ -79,7 +79,7 @@ pyinstaller -n musicfab --onefile --collect-submodules musicfab src/musicfab/__m
 
 ## 5. PDF/PNG 导出与 MuseScore（可选）
 
-默认路线：MusicXML → Verovio SVG → PyMuPDF 出 PDF/PNG，只需 `pip install verovio pymupdf`，无需系统库。
+默认路线：MusicXML → Verovio SVG → **resvg** 光栅化 → PyMuPDF 出 PDF/PNG，只需 `pip install verovio pymupdf resvg-py`，无需系统库。
 
 若要更好的排版（连音、歌词、多声部更精确），可另装 MuseScore 4（GPL）：
 1. 从 <https://musescore.org> 下载安装；

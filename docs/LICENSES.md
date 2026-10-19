@@ -18,7 +18,8 @@
 | dora-search / openunmix / einops / julius / lameenc | demucs 依赖 | MIT / MIT / MIT / MIT / LGPL-2.1 | 仅本地安装 |
 | pyguitarpro | 读取 .gp3/.gp4/.gp5 | LGPL-3 | 作为普通依赖 import（LGPL 允许动态使用） |
 | verovio | MusicXML/MEI 渲染 SVG | LGPL-3 | Python wheel |
-| pymupdf（可选，PDF/PNG） | SVG→PDF/PNG | **AGPL-3.0** | 仅作为可选依赖安装；不随仓库分发。个人自用无影响，商用发布需评估 |
+| pymupdf（可选，PDF/PNG） | PNG→PDF / 页面检查 | **AGPL-3.0** | 仅作为可选依赖安装；不随仓库分发。个人自用无影响，商用发布需评估 |
+| resvg-py（可选） | SVG→PNG（解析 Verovio 的 `<use>` 字形引用） | MPL-2.0（resvg 上游；发布前核对绑定许可） | 纯 wheel，无需系统库 |
 | cairosvg（可选） | SVG→PNG/PDF | LGPL-3 | Windows 需 cairo DLL；优先用 PyMuPDF |
 | MuseScore CLI | 排版/导出 PDF | GPL-3 | **仅子进程调用**，不链接 |
 | Verovio | MEI/MusicXML 渲染 | LGPL-3 | 子进程或 wheel |

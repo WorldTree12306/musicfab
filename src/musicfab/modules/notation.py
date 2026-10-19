@@ -149,23 +149,65 @@ def convert(input_path: str | Path, *, output: str | Path, fmt: str = "musicxml"
     return dst
 
 
-def _svg_to_raster_or_pdf(svg_path: Path, dst: Path, fmt: str, dpi: int = 150) -> Path:
-    """Convert a Verovio SVG to PDF or PNG using PyMuPDF (no system libs)."""
+def _svg_to_png_bytes(svg_path: Path, dpi: int = 200) -> bytes | None:
+    """Rasterise an SVG with resvg (handles Verovio's <use> glyph refs)."""
+    try:
+        import resvg_py
+    except ImportError:  # pragma: no cover - optional dependency
+        return None
+    zoom = max(0.5, dpi / 96.0)
+    data = resvg_py.svg_to_bytes(
+        svg_path=str(svg_path), background="#ffffff", zoom=zoom, skip_system_fonts=False
+    )
+    png = bytes(data)
+    if not png.startswith(b"\x89PNG"):
+        raise RuntimeError("resvg did not produce a PNG")
+    return png
+
+
+def _svg_to_raster_or_pdf(svg_path: Path, dst: Path, fmt: str, dpi: int = 200) -> Path:
+    """Convert a Verovio SVG to PDF or PNG.
+
+    Verovio references notation glyphs through ``<use xlink:href="#…">``;
+    those references are not resolved by MuPDF's SVG parser, so resvg is used
+    to rasterise the SVG first (PDF is then a high-DPI raster page, which is
+    visually identical for scores).
+    """
+    if fmt not in {"pdf", "png"}:
+        raise ValueError(f"unsupported render format: {fmt}")
+    png = _svg_to_png_bytes(svg_path, dpi=dpi)
+    if png is not None:
+        if fmt == "png":
+            dst.write_bytes(png)
+            return dst
+        try:
+            import pymupdf
+        except ImportError as exc:  # pragma: no cover
+            raise RuntimeError("PyMuPDF not installed (pip install pymupdf)") from exc
+        doc = pymupdf.open(stream=png, filetype="png")
+        try:
+            pdf_bytes = doc.convert_to_pdf()
+        finally:
+            doc.close()
+        dst.write_bytes(pdf_bytes)
+        return dst
+
+    # Fallback: MuPDF's own SVG parser (works for SVGs without <use> refs).
     try:
         import pymupdf
     except ImportError as exc:  # pragma: no cover - optional dependency
-        raise RuntimeError("PyMuPDF not installed (pip install pymupdf)") from exc
+        raise RuntimeError(
+            "PDF/PNG rendering needs resvg-py or PyMuPDF: pip install resvg-py pymupdf"
+        ) from exc
     doc = pymupdf.open(str(svg_path))
     try:
         if fmt == "pdf":
             doc.save(str(dst))
-        elif fmt == "png":
+        else:
             page = doc[0]
             zoom = dpi / 72.0
             pix = page.get_pixmap(matrix=pymupdf.Matrix(zoom, zoom), alpha=False)
             pix.save(str(dst))
-        else:
-            raise ValueError(f"unsupported render format: {fmt}")
     finally:
         doc.close()
     return dst

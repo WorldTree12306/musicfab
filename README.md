@@ -15,6 +15,12 @@ musicfab 用开源模型与库重新实现六个常见商业音乐工具的核�
 
 ![practice GUI](docs/gui.png)
 
+## 示例输出
+
+| 六线谱渲染（Guitar Pro 替代） | 乐谱排版（Capella 替代） |
+|---|---|
+| ![tab](docs/tab.png) | ![score](docs/score.png) |
+
 ## 快速开始
 
 ```bash
@@ -100,4 +106,4 @@ python scripts/gen_test_audio.py    # 生成测试音频
 
 ## License
 
-代码审查记录与已知限制见 `docs/REVIEW.md`。本项目代码 MIT。第三方组件许可证见 `docs/LICENSES.md`；其中 GPL 工具（MuseScore、Rubber Band 等）一律以**子进程**方式调用，不作为库链接，避免许可证传染。
+代码审查记录与已知限制见 `docs/REVIEW.md`。变更记录见 [`CHANGELOG.md`](CHANGELOG.md)，发布流程见 [`docs/RELEASE.md`](docs/RELEASE.md)。本项目代码 MIT。第三方组件许可证见 `docs/LICENSES.md`；其中 GPL 工具（MuseScore、Rubber Band 等）一律以**子进程**方式调用，不作为库链接，避免许可证传染。
