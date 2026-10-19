@@ -104,6 +104,7 @@ def separate(
     auto_tempo: bool = False,
     tempo: float = 120.0,
     time_signature: str = "4/4",
+    quantize_beats: int = 0,
 ) -> dict:
     """Split ``audio`` into stems written as WAV files under ``output_dir``.
 
@@ -212,6 +213,7 @@ def separate(
                     tempo=info["tempo"] if info else tempo,
                     time_signature=info["time_signature"] if info else time_signature,
                     beats=info["beats"] if info else None,
+                    quantize_beats=int(quantize_beats) or None,
                 )
                 proj_path = out_dir / f"{name}.mfproj.json"
                 proj.save(proj_path)

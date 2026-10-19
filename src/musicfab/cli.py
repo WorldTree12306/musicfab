@@ -133,6 +133,7 @@ def cmd_separate(args: argparse.Namespace) -> int:
         tempo=args.tempo,
         shifts=args.shifts,
         chunk_seconds=args.chunk_seconds,
+        quantize_beats=args.quantize_beats,
     )
     print(json.dumps(manifest, indent=2, ensure_ascii=False))
     return 0
@@ -227,6 +228,8 @@ def build_parser() -> argparse.ArgumentParser:
     psep.add_argument("--shifts", type=int, default=0, help="demucs shift averaging (higher = slower/better)")
     psep.add_argument("--chunk-seconds", type=float, default=0.0,
                       help="chunked overlap-add size (0 = auto above 4 minutes)")
+    psep.add_argument("--quantize-beats", type=int, default=0, metavar="SUBDIV",
+                      help="snap each stem's notes to the beat grid (0 = off)")
     psep.set_defaults(func=cmd_separate)
 
     pn = sub.add_parser("notation", help="score engraving/export (Capella alternative)")

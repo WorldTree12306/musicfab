@@ -105,7 +105,7 @@ musicfab 只通过子进程调用 MuseScore，不做链接，避免 GPL 传染�
 | `notation` | ✅ | MusicXML/MIDI/SVG（Verovio） |
 | `tab` | ✅ | .gp3/.gp4/.gp5 |
 | `notes`（仅检测/编辑表） | ⚠️ | 检测可用；`--edits` 重合成需源码安装（同 practice） |
-| `practice` / `shift` | ❌ | librosa 的 numba `vectorize` 在冻结包内无法缓存；请用源码安装 |
+| `practice` / `shift` / `notes`（重合成） | ❌ | librosa 的 numba `vectorize` 在冻结包内无法缓存（onedir/noarchive 方案亦失败）；请用源码安装 |
 | `separate` | ❌ | 需要 torch/demucs，未打包 |
 
 常见问题：
