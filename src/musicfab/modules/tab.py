@@ -130,7 +130,7 @@ def import_tab(input_path: str | Path, *, output: str | Path, fmt: str = "json")
     if fmt in {"midi", "musicxml"}:
         proj = _to_project(data)
         return to_midi(proj, dst) if fmt == "midi" else to_musicxml(proj, dst)
-    if fmt in {"svg", "html"}:
+    if fmt in {"svg", "html", "pdf", "png"}:
         return render_tab(data, dst, fmt=fmt)
     raise ValueError(f"unsupported tab output format: {fmt!r} (json/midi/musicxml/svg/html)")
 
@@ -178,8 +178,17 @@ def render_tab(data: dict | str | Path, output: str | Path, *, fmt: str = "svg",
             f"</head><body><h2>{title}</h2>{svg}</body></html>",
             encoding="utf-8",
         )
+    elif fmt in {"pdf", "png"}:
+        import tempfile
+
+        from .notation import _svg_to_raster_or_pdf
+
+        with tempfile.TemporaryDirectory() as tmp:
+            svg_path = Path(tmp) / "tab.svg"
+            svg_path.write_text(svg, encoding="utf-8")
+            _svg_to_raster_or_pdf(svg_path, dst, fmt)
     else:
-        raise ValueError(f"unsupported tab render format: {fmt!r} (svg/html)")
+        raise ValueError(f"unsupported tab render format: {fmt!r} (svg/html/pdf/png)")
     return dst
 
 

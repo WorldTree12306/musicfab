@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
 
@@ -130,3 +131,7 @@ def test_tab_render_svg_and_html(tmp_path: Path):
     html = render_tab(src, tmp_path / "tab.html", fmt="html")
     body = html.read_text(encoding="utf-8")
     assert body.startswith("<!doctype html>") and "<svg" in body
+
+    if importlib.util.find_spec("pymupdf") is not None:
+        pdf = render_tab(src, tmp_path / "tab.pdf", fmt="pdf")
+        assert pdf.read_bytes()[:5] == b"%PDF-"
