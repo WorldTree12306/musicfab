@@ -32,7 +32,7 @@
 - 统一 `.mfproj.json` 工程格式（tempo/time_signature/beats/tracks）
 - CLI：`version/probe/transcribe/practice/shift/notes/beats/separate/daw/notation/tab/gui`
 - 端到端 demo（`examples/demo.py`）、测试夹具生成/下载脚本
-- 37 项 pytest、GitHub Actions CI（Windows/Linux × py3.11/3.12）
+- 40 项 pytest、GitHub Actions CI（Windows/Linux × py3.11/3.12）
 - 文档：README / INSTALL / PLAN / LICENSES / COMPAT / REVIEW
 
 ### 修复
