@@ -11,6 +11,7 @@
 - 后端：`basic-pitch` ONNX（默认，无 TF）→ `piano_transcription_inference`（可选，钢琴）
 - 实现：`modules/transcribe.py`（阈值/最短音长/量化、MIDI+MusicXML 导出）
 - 验收：`melody.wav` 转谱 12 音（C 大调序列吻合）✅；MusicXML 可被 music21/MuseScore 读入 ✅
+- 节奏层：`modules/beats.py`（librosa DP 拍点）+ `transcribe --auto-tempo` 自动写 tempo/beats ✅
 
 ## Phase 2 — practice（Transcribe!）/ shift（Melodyne）✅
 - practice：librosa 变速/移调/循环切片 + `.practice.json` 参数记录
@@ -26,7 +27,7 @@
 ## Phase 4 — notation（Capella）/ tab（Guitar Pro）✅
 - notation：MusicXML/MIDI 互转（music21）、SVG（Verovio）、PDF/PNG（PyMuPDF 内置；MuseScore 可选更佳排版）
 - tab：PyGuitarPro 读取 `.gp3/.gp4/.gp5` → JSON/MIDI/MusicXML；`.gpx` 需先转（文档说明）
-- 验收：`.gp5` 样例解析出音轨/音符并导出 MIDI ✅；MIDI→MusicXML→SVG 链路 ✅
+- 验收：`.gp5` 样例解析出音轨/音符并导出 MIDI ✅；MIDI→MusicXML→SVG 链路 ✅；六线谱 SVG/HTML 渲染 ✅
 
 ## Phase 5 — 打包与发布
 - [x] 安装说明 / 许可证清单 / 兼容性说明

@@ -112,3 +112,21 @@ def test_notation_pdf_and_png(tmp_path: Path):
     assert pdf.exists() and pdf.read_bytes()[:5] == b"%PDF-"
     png = convert(midi, output=tmp_path / "x.png", fmt="png")
     assert png.exists() and png.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+def test_tab_render_svg_and_html(tmp_path: Path):
+    pytest.importorskip("guitarpro")
+    src = FIX / "Chords.gp5"
+    if not src.exists():
+        pytest.skip("fixture Chords.gp5 not present")
+    from musicfab.modules.tab import render_tab
+
+    svg = render_tab(src, tmp_path / "tab.svg", fmt="svg")
+    text = svg.read_text(encoding="utf-8")
+    assert text.lstrip().startswith("<svg") and "</svg>" in text
+    assert "text-anchor='middle'" in text  # fret numbers
+    assert text.count("<line") >= 6  # six strings
+
+    html = render_tab(src, tmp_path / "tab.html", fmt="html")
+    body = html.read_text(encoding="utf-8")
+    assert body.startswith("<!doctype html>") and "<svg" in body

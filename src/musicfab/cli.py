@@ -192,7 +192,7 @@ def build_parser() -> argparse.ArgumentParser:
     ptab = sub.add_parser("tab", help="guitar tab import/convert (Guitar Pro alternative)")
     ptab.add_argument("input")
     ptab.add_argument("-o", "--output", required=True)
-    ptab.add_argument("-f", "--format", default="json", choices=["json", "musicxml", "midi"])
+    ptab.add_argument("-f", "--format", default="json", choices=["json", "musicxml", "midi", "svg", "html"])
     ptab.set_defaults(func=cmd_tab)
 
     return p

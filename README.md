@@ -9,7 +9,7 @@ musicfab 用开源模型与库重新实现六个常见商业音乐工具的核�
 | Transcribe!（慢放/循环/移调） | `musicfab practice` | librosa / Rubber Band + 循环切片 |
 | RipX（分轨+转谱+DAW） | `musicfab separate` + `transcribe` | Demucs / Spleeter + Basic Pitch + MIDI 工程 |
 | Capella（记谱/排版） | `musicfab notation` | MuseScore CLI / LilyPond / Verovio |
-| Guitar Pro（六线谱） | `musicfab tab` | PyGuitarPro + alphaTab / TuxGuitar 格式互操作 |
+| Guitar Pro（六线谱） | `musicfab tab` | PyGuitarPro 读取 gp3/gp4/gp5 + 自研六线谱 SVG/HTML 渲染 |
 
 > **合规声明**：本项目是 clean-room 实现，只使用开源组件；不包含、不反编译、不分发任何商业软件（AnthemScore、Melodyne、Transcribe!、RipX、Capella、Guitar Pro）的代码、模型权重或授权数据。详见 `docs/LICENSES.md`。
 
@@ -23,6 +23,8 @@ musicfab transcribe your_song.mp3 -o out.mid --musicxml out.musicxml
 musicfab notes your_song.mp3 -o edits.json      # 生成逐音编辑表
 musicfab notes your_song.mp3 --edits edits.json -o edited.wav
 musicfab notation out.musicxml -o out.pdf -f pdf   # 内置 PDF（PyMuPDF）
+musicfab tab song.gp5 -o tab.html -f html           # 六线谱渲染
+musicfab beats song.mp3 -o beats.json               # 节奏分析
 ```
 
 ## 子命令
@@ -30,13 +32,14 @@ musicfab notation out.musicxml -o out.pdf -f pdf   # 内置 PDF（PyMuPDF）
 | 命令 | 说明 | 状态 |
 |---|---|---|
 | `probe` | 查看音频信息（格式/采样率/时长/声道） | ✅ |
-| `transcribe` | 音频转 MIDI/MusicXML（AnthemScore 替代） | ✅ basic-pitch(ONNX) / PTI 可选 |
+| `transcribe` | 音频转 MIDI/MusicXML（AnthemScore 替代） | ✅ basic-pitch(ONNX) / PTI；`--auto-tempo` 自动测速 |
 | `practice` | 变速/移调/循环练习（Transcribe! 替代） | ✅ |
 | `shift` | 整段变调（Melodyne 替代） | ✅ |
 | `notes` | 逐音编辑 + 重合成（Melodyne 替代） | ✅ 变调/时值/力度，只改选中音符 |
 | `separate` | 分轨（RipX 替代） | ✅ htdemucs 4 轨，可 `--transcribe` 逐轨转谱 |
 | `notation` | 记谱/排版/导出（Capella 替代） | ✅ MusicXML/MIDI/SVG/PDF/PNG（PDF/PNG 用 PyMuPDF，可选 MuseScore 更佳排版） |
-| `tab` | 六线谱导入（Guitar Pro 替代） | ✅ `.gp3/.gp4/.gp5` → JSON/MIDI/MusicXML |
+| `tab` | 六线谱导入/渲染（Guitar Pro 替代） | ✅ `.gp3/.gp4/.gp5` → JSON/MIDI/MusicXML/SVG/HTML |
+| `beats` | 速度/拍点/下拍估计 | ✅ 输出 JSON（tempo/beats/downbeats） |
 
 ## 安装可选后端
 

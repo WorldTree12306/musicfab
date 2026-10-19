@@ -130,4 +130,119 @@ def import_tab(input_path: str | Path, *, output: str | Path, fmt: str = "json")
     if fmt in {"midi", "musicxml"}:
         proj = _to_project(data)
         return to_midi(proj, dst) if fmt == "midi" else to_musicxml(proj, dst)
-    raise ValueError(f"unsupported tab output format: {fmt!r} (json/midi/musicxml)")
+    if fmt in {"svg", "html"}:
+        return render_tab(data, dst, fmt=fmt)
+    raise ValueError(f"unsupported tab output format: {fmt!r} (json/midi/musicxml/svg/html)")
+
+
+# ---------------------------------------------------------------------------
+# ASCII-tab style SVG renderer (pure python, offline, deterministic)
+# ---------------------------------------------------------------------------
+
+_STRING_SPACING = 18
+_BAR_WIDTH = 190
+_LEFT = 70
+_TOP = 70
+_LINE_COLOR = "#222"
+
+
+def _esc(text: str) -> str:
+    return (
+        str(text)
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+
+
+def render_tab(data: dict | str | Path, output: str | Path, *, fmt: str = "svg", max_bars: int = 16) -> Path:
+    """Render a parsed tab (or a .gp3/.gp4/.gp5 path) as SVG/HTML.
+
+    The renderer is intentionally minimal (frets on string lines, bar lines,
+    title/tempo header) and needs no browser or external library.
+    """
+    if not isinstance(data, dict):
+        data = parse_tab(data)
+    dst = Path(output)
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    svg = tab_to_svg(data, max_bars=max_bars)
+    if fmt == "svg":
+        dst.write_text(svg, encoding="utf-8")
+    elif fmt == "html":
+        title = _esc(data.get("title") or "tab")
+        dst.write_text(
+            "<!doctype html><html><head><meta charset='utf-8'>"
+            f"<title>{title}</title>"
+            "<style>body{font-family:Segoe UI,Arial,sans-serif;margin:24px;background:#fafafa}"
+            "svg{background:#fff;box-shadow:0 1px 4px #0002;max-width:100%;height:auto}</style>"
+            f"</head><body><h2>{title}</h2>{svg}</body></html>",
+            encoding="utf-8",
+        )
+    else:
+        raise ValueError(f"unsupported tab render format: {fmt!r} (svg/html)")
+    return dst
+
+
+def tab_to_svg(data: dict, *, max_bars: int = 16) -> str:
+    tempo = float(data.get("tempo") or 120.0)
+    bar_seconds = 4 * 60.0 / tempo if tempo > 0 else 2.0
+    width = _LEFT + max_bars * _BAR_WIDTH + 30
+    lines_total = 0
+    for track in data.get("tracks", []):
+        lines_total += max(6, len(track.get("strings") or []) or 6)
+    height = _TOP + 60 + max(1, len(data.get("tracks", []))) * (120 + 6 * _STRING_SPACING) + 20
+
+    parts: list[str] = [
+        f"<svg xmlns='http://www.w3.org/2000/svg' width='{width}' height='{height}' "
+        f"viewBox='0 0 {width} {height}' font-family='Consolas,Menlo,monospace'>",
+        "<rect width='100%' height='100%' fill='#ffffff'/>",
+        f"<text x='{_LEFT}' y='30' font-size='18' font-weight='bold'>{_esc(data.get('title') or 'Tab')}</text>",
+        f"<text x='{_LEFT}' y='50' font-size='12' fill='#555'>{_esc(data.get('artist') or '')}"
+        f"   tempo {tempo:g} BPM</text>",
+    ]
+
+    y_cursor = _TOP + 40
+    for track in data.get("tracks", []):
+        strings = track.get("strings") or []
+        n_strings = max(6, len(strings)) if not strings else len(strings)
+        top = y_cursor
+        parts.append(
+            f"<text x='{_LEFT}' y='{top - 8}' font-size='12' fill='#333'>"
+            f"{_esc(track.get('name') or 'track')} · {len(track.get('notes', []))} notes</text>"
+        )
+        grid_top = top + 10
+        grid_bottom = grid_top + (n_strings - 1) * _STRING_SPACING
+        # horizontal string lines + labels
+        for i in range(n_strings):
+            y = grid_top + i * _STRING_SPACING
+            parts.append(
+                f"<line x1='{_LEFT - 20}' y1='{y}' x2='{_LEFT + max_bars * _BAR_WIDTH}' y2='{y}' "
+                f"stroke='{_LINE_COLOR}' stroke-width='1'/>"
+            )
+        # bar lines
+        for b in range(max_bars + 1):
+            x = _LEFT + b * _BAR_WIDTH
+            parts.append(
+                f"<line x1='{x}' y1='{grid_top - 6}' x2='{x}' y2='{grid_bottom + 6}' "
+                f"stroke='#888' stroke-width='1'/>"
+            )
+        # fret numbers
+        for note in track.get("notes", []):
+            start = float(note.get("start", 0.0))
+            bar = int(start // bar_seconds) if bar_seconds > 0 else 0
+            if bar < 0 or bar >= max_bars:
+                continue
+            frac = (start - bar * bar_seconds) / bar_seconds if bar_seconds > 0 else 0.0
+            x = _LEFT + bar * _BAR_WIDTH + 10 + frac * (_BAR_WIDTH - 24)
+            string_no = int(note.get("string") or 1)
+            # string 1 = highest pitch -> drawn on top line
+            y = grid_top + (string_no - 1) * _STRING_SPACING
+            fret = int(note.get("fret", 0))
+            parts.append(
+                f"<text x='{x:.1f}' y='{y - 3:.1f}' font-size='11' text-anchor='middle' "
+                f"fill='#000'>{fret}</text>"
+            )
+        y_cursor = grid_bottom + 70
+
+    parts.append("</svg>")
+    return "\n".join(parts) + "\n"
