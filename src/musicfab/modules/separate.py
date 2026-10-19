@@ -215,7 +215,10 @@ def separate(
                 )
                 proj_path = out_dir / f"{name}.mfproj.json"
                 proj.save(proj_path)
-                entry = {"notes": len(proj.notes), "project": str(proj_path)}
+                from ..core.export import to_midi
+
+                midi_path = to_midi(proj, out_dir / f"{name}.mid")
+                entry = {"notes": len(proj.notes), "project": str(proj_path), "midi": str(midi_path)}
                 if info:
                     entry["tempo"] = info["tempo"]
                 transcriptions[name] = entry

@@ -63,7 +63,10 @@ def detect_beats(
         y=y, sr=sample_rate, start_bpm=float(start_bpm), tightness=float(tightness), units="time"
     )
     tempo_value = float(np.atleast_1d(tempo)[0])
-    tempo_value = _fix_tempo_octave(y, sample_rate, tempo_value)
+    if not np.isfinite(tempo_value) or tempo_value <= 0:
+        tempo_value = float(start_bpm)
+    else:
+        tempo_value = _fix_tempo_octave(y, sample_rate, tempo_value)
     beats = [round(float(t), 4) for t in np.atleast_1d(beat_times)]
     downbeats = [b for i, b in enumerate(beats) if i % max(1, int(beats_per_bar)) == 0]
     return {

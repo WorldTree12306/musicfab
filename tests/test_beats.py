@@ -79,3 +79,14 @@ def test_practice_loop_beats(tmp_path):
     meta = json.loads(Path(str(out) + ".practice.json").read_text(encoding="utf-8"))
     assert meta["beat_loop"] == 2
     assert meta["loop"] and meta["loop"][1] > meta["loop"][0]
+
+
+def test_detect_beats_silence_falls_back(tmp_path):
+    from musicfab.modules.beats import detect_beats
+
+    sr = 22050
+    src = tmp_path / "silence.wav"
+    sf.write(src, np.zeros(sr * 2, dtype=np.float32), sr)
+    info = detect_beats(src, start_bpm=100)
+    assert info["tempo"] == 100.0
+    assert info["beats"] == []

@@ -23,6 +23,7 @@
 - Demucs htdemucs（4 轨：drums/bass/other/vocals），权重首次自动下载（80 MB）
 - `--transcribe` 可对每轨复用 Phase 1 生成 `.mfproj.json`；`--auto-tempo` 每轨自动测速 ✅
 - 验收：4 轨输出 + 44.1k 采样率 + stems.json 清单 ✅（5.3s 音频 CPU 9.4s）；长音频分块 overlap-add（memmap，低内存）✅
+- DAW 交付：`modules/daw.py` 生成多轨 MIDI + tracks.json + README（Ardour/LMMS/Reaper 可导入）✅
 
 ## Phase 4 — notation（Capella）/ tab（Guitar Pro）✅
 - notation：MusicXML/MIDI 互转（music21）、SVG（Verovio）、PDF/PNG（PyMuPDF 内置；MuseScore 可选更佳排版）

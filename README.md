@@ -7,7 +7,7 @@ musicfab 用开源模型与库重新实现六个常见商业音乐工具的核�
 | AnthemScore（音频→乐谱） | `musicfab transcribe` | piano_transcription_inference / basic-pitch / MT3 + Beat-This + music21 |
 | Melodyne（音符级修音/变调） | `musicfab shift` / `musicfab notes` | librosa 相位声码器（逐音变调/时值/力度，仅重合成被编辑片段） |
 | Transcribe!（慢放/循环/移调） | `musicfab practice` | librosa / Rubber Band + 循环切片 |
-| RipX（分轨+转谱+DAW） | `musicfab separate` + `transcribe` | Demucs / Spleeter + Basic Pitch + MIDI 工程 |
+| RipX（分轨+转谱+DAW） | `musicfab separate` + `daw` | Demucs + Basic Pitch + 多轨 MIDI 工程包 |
 | Capella（记谱/排版） | `musicfab notation` | MuseScore CLI / LilyPond / Verovio |
 | Guitar Pro（六线谱） | `musicfab tab` | PyGuitarPro 读取 gp3/gp4/gp5 + 自研六线谱 SVG/HTML 渲染 |
 
@@ -26,6 +26,8 @@ musicfab notation out.musicxml -o out.pdf -f pdf   # 内置 PDF（PyMuPDF）
 musicfab tab song.gp5 -o tab.html -f html           # 六线谱渲染
 musicfab beats song.mp3 -o beats.json               # 节奏分析
 musicfab practice song.mp3 --loop-beats 8 -o loop.wav  # 按拍点循环
+musicfab separate song.mp3 --transcribe --auto-tempo -o stems/  # 分轨+逐轨转谱
+musicfab daw stems/ -o stems/daw/                    # 打包 DAW 工程
 ```
 
 ## 子命令
@@ -41,6 +43,7 @@ musicfab practice song.mp3 --loop-beats 8 -o loop.wav  # 按拍点循环
 | `notation` | 记谱/排版/导出（Capella 替代） | ✅ MusicXML/MIDI/SVG/PDF/PNG（PDF/PNG 用 PyMuPDF，可选 MuseScore 更佳排版） |
 | `tab` | 六线谱导入/渲染（Guitar Pro 替代） | ✅ `.gp3/.gp4/.gp5` → JSON/MIDI/MusicXML/SVG/HTML |
 | `beats` | 速度/拍点/下拍估计 | ✅ 输出 JSON（tempo/beats/downbeats） |
+| `daw` | 分轨工程打包（RipX 替代） | ✅ 多轨 MIDI + tracks.json + README，Ardour/LMMS/Reaper 可导入 |
 
 ## 安装可选后端
 

@@ -68,6 +68,19 @@ def cmd_beats(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_daw(args: argparse.Namespace) -> int:
+    from .modules.daw import build_bundle
+
+    manifest = build_bundle(
+        args.input_dir,
+        output_dir=args.output,
+        name=args.name,
+        tempo=args.tempo if args.tempo else None,
+    )
+    print(json.dumps(manifest, indent=2, ensure_ascii=False))
+    return 0
+
+
 def cmd_practice(args: argparse.Namespace) -> int:
     from .modules.practice import practice
 
@@ -173,6 +186,13 @@ def build_parser() -> argparse.ArgumentParser:
     pb.add_argument("-o", "--output", help="write beats JSON (default: print)")
     pb.add_argument("--beats-per-bar", type=int, default=4)
     pb.set_defaults(func=cmd_beats)
+
+    pd = sub.add_parser("daw", help="assemble a DAW import bundle from stem projects (RipX alternative)")
+    pd.add_argument("input_dir", help="directory produced by 'separate --transcribe'")
+    pd.add_argument("-o", "--output", help="bundle directory (default: <input>/daw)")
+    pd.add_argument("--name", help="bundle name (default: input directory name)")
+    pd.add_argument("--tempo", type=float, default=0.0, help="override tempo")
+    pd.set_defaults(func=cmd_daw)
 
     pnotes = sub.add_parser("notes", help="detect/edit individual notes and resynthesise (Melodyne alternative)")
     pnotes.add_argument("audio")

@@ -34,13 +34,17 @@ musicfab version
 ```bash
 python scripts/gen_test_audio.py      # 生成合成测试音频
 python scripts/fetch_fixtures.py      # 可选：下载 .gp5 样例（PyGuitarPro 测试集）
-python -m pytest -q                   # 19 tests
+python -m pytest -q                   # 32 tests
 python examples/demo.py               # 端到端演示 -> build/demo/
 
 逐音编辑（Melodyne 式）：
 python -m musicfab.cli notes song.wav -o edits.json     # 生成编辑表（检测音符）
 # 修改 edits.json 里某条的 semitones / duration_scale / velocity_scale
 python -m musicfab.cli notes song.wav --edits edits.json -o edited.wav
+
+分轨到 DAW：
+python -m musicfab.cli separate song.wav --transcribe --auto-tempo -o stems/
+python -m musicfab.cli daw stems/ --name mysong
 ```
 
 示例输出（本机实测，CPU）：
