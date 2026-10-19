@@ -13,6 +13,7 @@
 - 验收：`melody.wav` 转谱 12 音（C 大调序列吻合）✅；MusicXML 可被 music21/MuseScore 读入 ✅
 - 节奏层：`modules/beats.py`（librosa DP 拍点）+ `transcribe --auto-tempo` 自动写 tempo/beats ✅
 - 量化：`transcribe --quantize-beats N` 按检测拍点吸附（1=四分、2=八分…）✅
+- 下拍：低频重音相位估计（`downbeat_phase/downbeat_confidence`），按小节循环与 GUI 均按真实下拍对齐 ✅
 
 ## Phase 2 — practice（Transcribe!）/ shift（Melodyne）✅
 - practice：librosa 变速/移调/循环切片 + `.practice.json` 参数记录；`--loop-beats` 按拍点、`--loop-bars` 按小节循环 ✅

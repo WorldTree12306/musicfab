@@ -106,15 +106,30 @@ def practice(
         except Exception:
             num = 4
         num = max(1, num)
-        start_idx = int(bar_start) * num
-        end_idx = start_idx + int(bar_loop) * num
-        loop = _loop_from_beat_indices(beats, start_idx, end_idx)
+        start_bar = int(bar_start)
+        downbeats = list(info.get("downbeats") or [])
+        if len(downbeats) >= 2 and start_bar < len(downbeats):
+            start = downbeats[start_bar]
+            end_bar = start_bar + int(bar_loop)
+            if end_bar < len(downbeats):
+                end = downbeats[end_bar]
+            else:
+                spacings = [b - a for a, b in zip(downbeats, downbeats[1:])]
+                bar_period = sorted(spacings)[len(spacings) // 2]
+                end = downbeats[-1] + (end_bar - (len(downbeats) - 1)) * bar_period
+            loop = (start, end)
+            start_idx = start_bar * num
+        else:
+            start_idx = start_bar * num
+            end_idx = start_idx + int(bar_loop) * num
+            loop = _loop_from_beat_indices(beats, start_idx, end_idx)
         beat_meta = {
             "beat_loop": int(bar_loop) * num,
             "beat_start": start_idx,
             "bar_loop": int(bar_loop),
-            "bar_start": int(bar_start),
+            "bar_start": start_bar,
             "beats_per_bar": num,
+            "downbeat_aligned": len(downbeats) >= 2 and start_bar < len(downbeats),
         }
 
     data, sr = audio_io.load(audio, mono=True)

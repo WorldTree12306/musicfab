@@ -207,14 +207,28 @@ def make_window():
                     per_bar = int(str(info.get("time_signature", "4/4")).split("/")[0])
                 except Exception:
                     per_bar = 4
-                beats = info["beats"]
-                start_idx = int(self.bar_start.value()) * per_bar
-                if len(beats) >= start_idx + 2:
-                    start = beats[start_idx]
-                    end_idx = min(len(beats) - 1, start_idx + bars * per_bar)
-                    end = beats[end_idx]
+                downbeats = list(info.get("downbeats") or [])
+                start_bar = int(self.bar_start.value())
+                if len(downbeats) >= 2 and start_bar < len(downbeats):
+                    start = downbeats[start_bar]
+                    end_idx = start_bar + bars
+                    if end_idx < len(downbeats):
+                        end = downbeats[end_idx]
+                    else:
+                        spacings = [b - a for a, b in zip(downbeats, downbeats[1:])]
+                        period = sorted(spacings)[len(spacings) // 2]
+                        end = downbeats[-1] + (end_idx - (len(downbeats) - 1)) * period
                     if end > start:
                         loop = (start, end)
+                else:
+                    beats = info["beats"]
+                    start_idx = start_bar * per_bar
+                    if len(beats) >= start_idx + 2:
+                        start = beats[start_idx]
+                        end_idx = min(len(beats) - 1, start_idx + bars * per_bar)
+                        end = beats[end_idx]
+                        if end > start:
+                            loop = (start, end)
             out = practice(
                 self.audio_path,
                 tempo=tempo,

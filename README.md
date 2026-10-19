@@ -47,7 +47,7 @@ musicfab daw stems/ -o stems/daw/                    # 打包 DAW 工程
 | `separate` | 分轨（RipX 替代） | ✅ htdemucs 4 轨；分块 overlap-add；`--transcribe` 逐轨转谱 + `--auto-tempo` + `--quantize-beats` |
 | `notation` | 记谱/排版/导出（Capella 替代） | ✅ MusicXML/MIDI/SVG/PDF/PNG（PDF/PNG 用 PyMuPDF，可选 MuseScore 更佳排版） |
 | `tab` | 六线谱导入/渲染（Guitar Pro 替代） | ✅ `.gp3/.gp4/.gp5` → JSON/MIDI/MusicXML/SVG/HTML |
-| `beats` | 速度/拍点/下拍估计 | ✅ 输出 JSON（tempo/beats/downbeats） |
+| `beats` | 速度/拍点/下拍估计 | ✅ 输出 JSON（tempo/beats/downbeats + 低频重音相位/置信度） |
 | `daw` | 分轨工程打包（RipX 替代） | ✅ 多轨 MIDI + tracks.json + README，Ardour/LMMS/Reaper 可导入 |
 
 ## 安装可选后端
