@@ -35,6 +35,8 @@ def cmd_transcribe(args: argparse.Namespace) -> int:
         model=args.model,
         output_midi=args.output,
         output_musicxml=args.musicxml,
+        tempo=args.tempo,
+        time_signature=args.time_signature,
     )
     out = Path(args.save) if args.save else Path(args.audio).with_suffix(".mfproj.json")
     proj.save(out)
@@ -116,6 +118,8 @@ def build_parser() -> argparse.ArgumentParser:
     pt.add_argument("-o", "--output", help="output MIDI path")
     pt.add_argument("--musicxml", help="output MusicXML path")
     pt.add_argument("--model", default="auto", help="model backend: auto|pti|basicpitch")
+    pt.add_argument("--tempo", type=float, default=120.0, help="tempo for MIDI/MusicXML export")
+    pt.add_argument("--time-signature", default="4/4", help="time signature for export, e.g. 3/4")
     pt.add_argument("--save", help="project JSON path")
     pt.set_defaults(func=cmd_transcribe)
 

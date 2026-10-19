@@ -34,14 +34,28 @@ class Project:
     name: str = "untitled"
     audio: dict = field(default_factory=dict)
     tempo: float = 120.0
+    time_signature: str = "4/4"
     beats: list[float] = field(default_factory=list)
     tracks: list[Track] = field(default_factory=list)
     meta: dict = field(default_factory=dict)
 
     # -- constructors -------------------------------------------------
     @classmethod
-    def from_notes(cls, notes: list[Note], name: str = "untitled", **meta) -> "Project":
-        return cls(name=name, tracks=[Track(notes=list(notes))], meta=meta)
+    def from_notes(
+        cls,
+        notes: list[Note],
+        name: str = "untitled",
+        tempo: float = 120.0,
+        time_signature: str = "4/4",
+        **meta,
+    ) -> "Project":
+        return cls(
+            name=name,
+            tempo=float(tempo),
+            time_signature=time_signature,
+            tracks=[Track(notes=list(notes))],
+            meta=meta,
+        )
 
     @property
     def notes(self) -> list[Note]:
@@ -83,6 +97,7 @@ class Project:
             name=raw.get("name", "untitled"),
             audio=raw.get("audio", {}),
             tempo=float(raw.get("tempo", 120.0)),
+            time_signature=raw.get("time_signature", "4/4"),
             beats=[float(b) for b in raw.get("beats", [])],
             tracks=tracks,
             meta=raw.get("meta", {}),

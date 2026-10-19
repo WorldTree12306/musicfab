@@ -6,18 +6,36 @@ from pathlib import Path
 from .project import Project
 
 
+def _parse_time_signature(value: str) -> tuple[int, int]:
+    """Parse ``"4/4"`` style signatures, falling back to 4/4."""
+    try:
+        num_s, den_s = str(value).split("/")
+        num, den = int(num_s), int(den_s)
+        if num > 0 and den in (1, 2, 4, 8, 16, 32):
+            return num, den
+    except Exception:  # noqa: BLE001 - tolerate user input
+        pass
+    return 4, 4
+
+
 def to_midi(project: Project, path: str | Path, ticks_per_beat: int = 480) -> Path:
     """Write a Standard MIDI File (type 1)."""
     import mido
 
     mid = mido.MidiFile(type=1, ticks_per_beat=ticks_per_beat)
     tempo = mido.bpm2tempo(project.tempo or 120.0)
+    numerator, denominator = _parse_time_signature(getattr(project, "time_signature", "4/4"))
     for i, track in enumerate(project.tracks or []):
         mt = mido.MidiTrack()
         mid.tracks.append(mt)
         mt.append(mido.MetaMessage("track_name", name=track.name or f"track{i}", time=0))
         if i == 0:
             mt.append(mido.MetaMessage("set_tempo", tempo=tempo, time=0))
+            mt.append(
+                mido.MetaMessage(
+                    "time_signature", numerator=numerator, denominator=denominator, time=0
+                )
+            )
         events = []
         for n in track.notes:
             start = round(n.start * (project.tempo or 120) / 60 * ticks_per_beat)

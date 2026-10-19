@@ -29,6 +29,7 @@ DEFAULT_EDIT = {
     "duration_scale": 1.0,
     "velocity_scale": 1.0,
 }
+DURATION_SCALE_RANGE = (0.25, 4.0)
 
 
 @dataclass
@@ -82,7 +83,7 @@ def write_template(
         "help": (
             "Edit the 'edits' entries you want to change, then run: "
             "musicfab notes <audio> --edits <this file> -o out.wav. "
-            "semitones: pitch shift; start_shift: seconds; duration_scale: 1.0 = unchanged; "
+            "semitones: pitch shift; start_shift: seconds; duration_scale: 0.25-4.0; "
             "velocity_scale: amplitude multiplier."
         ),
     }
@@ -94,10 +95,15 @@ def write_template(
 
 def _load_edits(path: str | Path) -> list[NoteEdit]:
     raw = json.loads(Path(path).read_text(encoding="utf-8"))
-    entries = raw.get("edits", raw if isinstance(raw, list) else [])
+    if isinstance(raw, dict):
+        entries = raw.get("edits", [])
+    elif isinstance(raw, list):
+        entries = raw
+    else:
+        raise ValueError("edit table must be a JSON object with 'edits' or a JSON array")
     edits: list[NoteEdit] = []
     for e in entries:
-        if "index" not in e:
+        if not isinstance(e, dict) or "index" not in e:
             continue
         edits.append(
             NoteEdit(
@@ -127,11 +133,14 @@ def apply_edits(
     output: str | Path,
     notes: list[Note] | None = None,
     model: str = "basicpitch",
-    margin: float = 0.02,
+    margin: float = 0.01,
 ) -> dict:
     """Apply note edits and write the resynthesised audio.
 
     Unedited notes/regions are copied verbatim from the original file.
+    ``margin`` is only used to capture attack/release around a note; the
+    transformed segment is placed back at the note's original position (plus
+    ``start_shift``), so unedited timing is preserved.
     """
     import librosa
 
@@ -144,11 +153,20 @@ def apply_edits(
     applied = 0
     errors: list[str] = []
 
+    # Process by note start so overlapping edits are deterministic.
+    edits.sort(key=lambda e: (notes[e.index].start if 0 <= e.index < len(notes) else 0.0, e.index))
+
     for e in edits:
         if e.is_noop:
             continue
         if e.index < 0 or e.index >= len(notes):
             errors.append(f"index {e.index} out of range (0..{len(notes) - 1})")
+            continue
+        if not (DURATION_SCALE_RANGE[0] <= e.duration_scale <= DURATION_SCALE_RANGE[1]):
+            errors.append(
+                f"note {e.index}: duration_scale {e.duration_scale} outside "
+                f"{DURATION_SCALE_RANGE[0]}-{DURATION_SCALE_RANGE[1]}"
+            )
             continue
         n = notes[e.index]
         s = max(0, int((n.start - margin) * sr))
@@ -160,17 +178,18 @@ def apply_edits(
         try:
             if e.semitones:
                 seg = librosa.effects.pitch_shift(seg, sr=sr, n_steps=float(e.semitones))
-            if e.duration_scale and abs(e.duration_scale - 1.0) > 1e-6:
+            if abs(e.duration_scale - 1.0) > 1e-6:
                 seg = librosa.effects.time_stretch(seg, rate=1.0 / float(e.duration_scale))
-            if e.velocity_scale and abs(e.velocity_scale - 1.0) > 1e-6:
+            if abs(e.velocity_scale - 1.0) > 1e-6:
                 seg = seg * float(e.velocity_scale)
         except Exception as exc:  # keep other edits usable
             errors.append(f"note {e.index}: {exc}")
             continue
 
-        # mute the original region, then mix the transformed segment at its new spot
+        # mute the original region, then mix the transformed segment back at
+        # the same start offset (plus explicit start_shift)
         out[s:t] *= 0.0
-        new_start = int(max(0, (n.start + margin + e.start_shift) * sr))
+        new_start = int(max(0, s + e.start_shift * sr))
         new_end = new_start + len(seg)
         if new_end > len(out):
             out = np.pad(out, (0, new_end - len(out)))

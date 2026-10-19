@@ -37,6 +37,10 @@ def separate(
     """Split ``audio`` into stems written as WAV files under ``output_dir``.
 
     Returns a manifest dict ``{"model", "sample_rate", "stems": {name: path}}``.
+
+    Memory note: Demucs processes the whole file and keeps all stems in memory
+    (a 10-minute stereo track peaks around 1.5-2 GB).  For very long material
+    split the input first, e.g. ``ffmpeg -f segment -segment_time 300``.
     """
     import torch
     from demucs.apply import apply_model
@@ -54,13 +58,16 @@ def separate(
     data = _as_stereo(np.asarray(data, dtype=np.float32))
 
     wav = torch.from_numpy(data.T)[None]  # [1, channels, samples]
+    del data
     ref = wav.mean(0)
     wav = (wav - ref.mean()) / (ref.std() + 1e-8)
     with torch.no_grad():
         sources = apply_model(
             net, wav, device="cpu", shifts=int(shifts), split=True, overlap=float(overlap), progress=False
         )
+    del wav
     sources = sources * ref.std() + ref.mean()
+    del ref
 
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)

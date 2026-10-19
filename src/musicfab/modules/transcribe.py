@@ -17,24 +17,42 @@ Both backends are offline after their model files are present.
 """
 from __future__ import annotations
 
+import contextlib
 from pathlib import Path
 
 from ..core.export import to_midi, to_musicxml
 from ..core.project import Note, Project, Track
 
 
-def _merge_same_pitch(notes: list[Note], gap: float = 0.03) -> list[Note]:
-    """Merge overlapping / nearly-touching notes with the same pitch.
+@contextlib.contextmanager
+def _quiet():
+    """Silence third-party warnings/logs *temporarily*, restoring on exit."""
+    import logging
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        previous = logging.root.manager.disable
+        logging.disable(logging.WARNING)
+        try:
+            yield
+        finally:
+            logging.disable(previous)
+
+
+def _merge_same_pitch(notes: list[Note], gap: float = 0.0) -> list[Note]:
+    """Merge *overlapping* notes with the same pitch.
 
     Backends sometimes emit a note twice (onset + frame detection) or split a
-    sustained tone; merging keeps the project tidy without changing pitch.
+    sustained tone.  Only real overlaps are merged so re-articulated repeated
+    notes (e.g. fast 16th-note passages) are preserved.
     """
     if not notes:
         return notes
     notes = sorted(notes, key=lambda n: (n.pitch, n.start, n.end))
     merged: list[Note] = []
     for n in notes:
-        if merged and merged[-1].pitch == n.pitch and n.start <= merged[-1].end + gap:
+        if merged and merged[-1].pitch == n.pitch and n.start < merged[-1].end - 1e-6 + gap:
             prev = merged[-1]
             prev.end = max(prev.end, n.end)
             prev.velocity = max(prev.velocity, n.velocity)
@@ -51,25 +69,21 @@ def _basicpitch_notes(
     frame_threshold: float = 0.3,
     min_note_ms: float = 50.0,
 ) -> list[Note]:
-    import logging
-    import warnings
+    with _quiet():
+        from basic_pitch import ICASSP_2022_MODEL_PATH
+        from basic_pitch.inference import predict
 
-    warnings.filterwarnings("ignore")
-    logging.disable(logging.WARNING)
-    from basic_pitch import ICASSP_2022_MODEL_PATH
-    from basic_pitch.inference import predict
-
-    _model_output, _midi_data, note_events = predict(
-        str(audio),
-        ICASSP_2022_MODEL_PATH,
-        onset_threshold=onset_threshold,
-        frame_threshold=frame_threshold,
-        minimum_note_length=min_note_ms,
-        minimum_frequency=None,
-        maximum_frequency=None,
-        multiple_pitch_bends=False,
-        melodia_trick=True,
-    )
+        _model_output, _midi_data, note_events = predict(
+            str(audio),
+            ICASSP_2022_MODEL_PATH,
+            onset_threshold=onset_threshold,
+            frame_threshold=frame_threshold,
+            minimum_note_length=min_note_ms,
+            minimum_frequency=None,
+            maximum_frequency=None,
+            multiple_pitch_bends=False,
+            melodia_trick=True,
+        )
     notes: list[Note] = []
     for ev in note_events:
         start, end, pitch = float(ev[0]), float(ev[1]), int(round(float(ev[2])))
@@ -81,17 +95,14 @@ def _basicpitch_notes(
 
 
 def _pti_notes(audio: Path) -> list[Note]:
-    import logging
-    import warnings
+    with _quiet():
+        import librosa
+        from piano_transcription_inference import PianoTranscription, sample_rate
 
-    warnings.filterwarnings("ignore")
-    logging.disable(logging.WARNING)
-    import librosa
-    from piano_transcription_inference import PianoTranscription, sample_rate
+        data, _ = librosa.load(str(audio), sr=sample_rate, mono=True)
+        transcriptor = PianoTranscription(device="cpu")
+        transcribed = transcriptor.transcribe(data)
 
-    data, _ = librosa.load(str(audio), sr=sample_rate, mono=True)
-    transcriptor = PianoTranscription(device="cpu")
-    transcribed = transcriptor.transcribe(data)
     notes: list[Note] = []
     for onset, offset, midi, velocity in transcribed.get("est_note", []):
         notes.append(
@@ -132,6 +143,8 @@ def transcribe(
     frame_threshold: float = 0.3,
     min_note_ms: float = 50.0,
     quantize: float | None = None,
+    tempo: float = 120.0,
+    time_signature: str = "4/4",
 ) -> Project:
     """Transcribe an audio file into a :class:`Project`.
 
@@ -142,6 +155,9 @@ def transcribe(
     quantize:
         If given, snap note starts/ends to the nearest multiple of this many
         seconds (e.g. ``0.125`` for a 32nd-note grid at 120 BPM).
+    tempo, time_signature:
+        Musical context used for MIDI/MusicXML export (transcription itself
+        works on absolute seconds; no beat tracking is performed).
     """
     src = Path(audio)
     if not src.exists():
@@ -163,7 +179,14 @@ def transcribe(
                 n.end = round(n.start + q, 4)
 
     notes = _merge_same_pitch(notes)
-    proj = Project.from_notes(notes, name=src.stem, audio={"path": str(src)}, backend=backend)
+    proj = Project.from_notes(
+        notes,
+        name=src.stem,
+        tempo=float(tempo),
+        time_signature=time_signature,
+        audio={"path": str(src)},
+        backend=backend,
+    )
     proj.tracks = [Track(name=src.stem, notes=notes)]
 
     if output_midi:
