@@ -31,5 +31,5 @@
 ## Phase 5 — 打包与发布
 - [x] 安装说明 / 许可证清单 / 兼容性说明
 - [x] pytest 全绿（含慢速分轨测试标记）
-- [ ] PyInstaller 便携包
+- [x] PyInstaller 便携包（lite：transcribe/notation/tab/PDF；practice/notes 重合成需源码）
 - [ ] GitHub Actions（Windows/Linux 单测 + 示例产物）
