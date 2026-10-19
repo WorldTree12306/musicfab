@@ -105,3 +105,65 @@ def test_note_edit_preserves_original_start_time(tmp_path: Path):
     win0 = y0[int(a * sr): int((a + 0.06) * sr)]
     win1 = y1[int(a * sr): int((a + 0.06) * sr)]
     assert rms(win1) > 0.3 * rms(win0), "edited note must still start at its original time"
+
+
+def test_practice_beat_loop_validation(tmp_path: Path):
+    pytest.importorskip("librosa")
+    from musicfab.modules.practice import practice
+
+    src = _melody(tmp_path)
+    with pytest.raises(ValueError):
+        practice(src, beat_loop=0, output=tmp_path / "x.wav")
+    with pytest.raises(ValueError):
+        practice(src, beat_loop=2, beat_start=-1, output=tmp_path / "x.wav")
+
+
+def test_tab_renderer_reports_clamped_strings_and_bars():
+    from musicfab.modules.tab import tab_to_svg
+
+    data = {
+        "title": "synthetic",
+        "tempo": 120,
+        "time_signature": "4/4",
+        "measures": [
+            {"index": 0, "start": 0.0, "duration": 2.0, "time_signature": "4/4"},
+            {"index": 1, "start": 2.0, "duration": 2.0, "time_signature": "4/4"},
+        ],
+        "tracks": [
+            {
+                "name": "gtr",
+                "strings": [64, 59, 55, 50, 45, 40],
+                "notes": [
+                    {"start": 0.0, "duration": 0.25, "pitch": 64, "string": 1, "fret": 0,
+                     "bar": 0, "bar_pos": 0.0},
+                    {"start": 2.5, "duration": 0.25, "pitch": 40, "string": 99, "fret": 5,
+                     "bar": 1, "bar_pos": 0.25},  # out-of-range string
+                    {"start": 2.75, "duration": 0.25, "pitch": 40, "string": 6, "fret": 3,
+                     "bar": 1, "bar_pos": 0.375},
+                ],
+            }
+        ],
+    }
+    svg = tab_to_svg(data, max_bars=1)
+    assert "skipped" in svg and "bars not shown" in svg
+    # only one measure is shown -> 2 vertical bar lines
+    assert svg.count("stroke='#888'") == 2
+
+
+def test_detect_beats_octave_not_doubled(tmp_path: Path):
+    pytest.importorskip("librosa")
+    from musicfab.modules.beats import detect_beats
+
+    sr = 22050
+    bpm = 60
+    period = 60.0 / bpm
+    dur = 8.0
+    y = np.zeros(int(sr * dur), dtype=np.float32)
+    click = (0.8 * np.sin(2 * np.pi * 900 * np.arange(int(sr * 0.03)) / sr)).astype(np.float32)
+    for t in np.arange(0, dur - 0.1, period):
+        i = int(t * sr)
+        y[i: i + len(click)] += click
+    src = tmp_path / "slow.wav"
+    sf.write(src, y, sr)
+    info = detect_beats(src, start_bpm=120)
+    assert 45 <= info["tempo"] <= 80, f"expected ~60 BPM, got {info['tempo']}"

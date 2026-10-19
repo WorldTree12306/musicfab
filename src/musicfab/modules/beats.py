@@ -11,6 +11,35 @@ from pathlib import Path
 import numpy as np
 
 
+
+
+def _fix_tempo_octave(y, sr: int, tempo: float, hop: int = 512) -> float:
+    """Correct common half/double tempo errors using onset autocorrelation."""
+    import librosa
+
+    if tempo <= 0:
+        return tempo
+    onset_env = librosa.onset.onset_strength(y=y, sr=sr, hop_length=hop)
+    if onset_env.size < 8:
+        return tempo
+
+    def score(bpm: float) -> float:
+        lag = int(round(60.0 / bpm * sr / hop))
+        if lag < 1 or lag >= onset_env.size:
+            return -1.0
+        ac = librosa.autocorrelate(onset_env, max_size=lag + 1)
+        return float(ac[lag] / (ac[0] + 1e-9))
+
+    candidates = [c for c in (tempo * 0.5, tempo, tempo * 2.0) if 50.0 <= c <= 220.0]
+    if not candidates:
+        return tempo
+    base = score(tempo)
+    best = max(candidates, key=score)
+    if best != tempo and score(best) > base * 1.2:
+        return float(best)
+    return float(tempo)
+
+
 def detect_beats(
     audio: str | Path,
     *,
@@ -34,6 +63,7 @@ def detect_beats(
         y=y, sr=sample_rate, start_bpm=float(start_bpm), tightness=float(tightness), units="time"
     )
     tempo_value = float(np.atleast_1d(tempo)[0])
+    tempo_value = _fix_tempo_octave(y, sample_rate, tempo_value)
     beats = [round(float(t), 4) for t in np.atleast_1d(beat_times)]
     downbeats = [b for i, b in enumerate(beats) if i % max(1, int(beats_per_bar)) == 0]
     return {

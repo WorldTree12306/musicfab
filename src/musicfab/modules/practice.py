@@ -55,26 +55,41 @@ def practice(
         raise ValueError("tempo must be positive")
     import librosa
 
+    if beat_loop is not None:
+        if int(beat_loop) < 1:
+            raise ValueError("--loop-beats must be >= 1")
+        if int(beat_start) < 0:
+            raise ValueError("--beat-start must be >= 0")
+    beat_loop_ignored = bool(beat_loop and loop)
+    beat_meta = None
     if beat_loop and not loop:
         from .beats import detect_beats
 
         beats = detect_beats(audio)["beats"]
         if len(beats) < 2:
             raise ValueError("not enough beats detected for --loop-beats")
-        start_idx = max(0, int(beat_start))
+        start_idx = int(beat_start)
         end_idx = start_idx + int(beat_loop)
         if start_idx >= len(beats) - 1:
             raise ValueError(f"beat_start {start_idx} outside detected beats (0..{len(beats) - 2})")
         start = beats[start_idx]
         if end_idx < len(beats):
             end = beats[end_idx]
-        else:  # extend the last interval
+        else:  # extend the last interval, clamped to the audio below
             period = beats[-1] - beats[-2]
             end = beats[-1] + (end_idx - (len(beats) - 1)) * period
         loop = (start, end)
+        beat_meta = {"beat_loop": int(beat_loop), "beat_start": start_idx}
 
     data, sr = audio_io.load(audio, mono=True)
     input_duration = len(data) / sr
+    loop_clamped = False
+    if loop:
+        start, end = float(loop[0]), float(loop[1])
+        if end > input_duration:
+            end = input_duration
+            loop = (start, end)
+            loop_clamped = True
     data = _slice(data, sr, loop)
 
     if semitones:
@@ -92,8 +107,10 @@ def practice(
         "tempo": float(tempo),
         "semitones": float(semitones),
         "loop": list(loop) if loop else None,
-        "beat_loop": int(beat_loop) if beat_loop else None,
-        "beat_start": int(beat_start) if beat_loop else None,
+        "loop_clamped": loop_clamped,
+        "beat_loop_ignored": beat_loop_ignored,
+        "beat_loop": beat_meta["beat_loop"] if beat_meta else None,
+        "beat_start": beat_meta["beat_start"] if beat_meta else None,
         "input_duration": round(input_duration, 3),
         "output_duration": round(len(data) / sr, 3),
     }
