@@ -16,7 +16,7 @@ import subprocess
 from pathlib import Path
 
 MUSESCORE_NAMES = ("musescore4", "musescore3", "musescore", "mscore", "MuseScore4", "MuseScore3")
-AUDIO_EXTS = {".mid", ".midi", ".musicxml", ".xml", ".mxl", ".mei"}
+AUDIO_EXTS = {".mid", ".midi", ".musicxml", ".xml", ".mxl", ".mei", ".mfproj.json"}
 
 
 def find_musescore() -> str | None:
@@ -82,7 +82,13 @@ def _render_svg_with_verovio(src: Path, dst: Path) -> Path:
     return dst
 
 
-def convert(input_path: str | Path, *, output: str | Path, fmt: str = "musicxml") -> Path:
+def convert(
+    input_path: str | Path,
+    *,
+    output: str | Path,
+    fmt: str = "musicxml",
+    quantize_beats: int | None = None,
+) -> Path:
     """Convert a score file.
 
     ``fmt``: ``musicxml`` | ``midi`` | ``svg`` | ``png`` | ``pdf``.
@@ -91,11 +97,29 @@ def convert(input_path: str | Path, *, output: str | Path, fmt: str = "musicxml"
     dst = Path(output)
     if not src.exists():
         raise FileNotFoundError(src)
-    if src.suffix.lower() not in AUDIO_EXTS:
+    is_project = src.name.endswith(".mfproj.json")
+    if not is_project and src.suffix.lower() not in AUDIO_EXTS:
         raise ValueError(f"unsupported score input: {src.suffix} (expected one of {sorted(AUDIO_EXTS)})")
     dst.parent.mkdir(parents=True, exist_ok=True)
 
     fmt = fmt.lower()
+    if src.name.endswith(".mfproj.json"):
+        from ..core.export import to_midi, to_musicxml
+        from ..core.project import Project
+
+        project = Project.load(src)
+        if fmt == "musicxml":
+            return to_musicxml(project, dst, quantize_beats=quantize_beats)
+        if fmt == "midi":
+            return to_midi(project, dst)
+        # render from a temporary MusicXML
+        tmp = dst.with_suffix(".tmp.musicxml")
+        try:
+            to_musicxml(project, tmp, quantize_beats=quantize_beats)
+            return convert(tmp, output=dst, fmt=fmt)
+        finally:
+            tmp.unlink(missing_ok=True)
+
     if fmt == "musicxml":
         if src.suffix.lower() in {".musicxml", ".xml", ".mxl"}:
             return _to_musicxml(src, dst)

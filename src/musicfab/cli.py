@@ -142,7 +142,7 @@ def cmd_separate(args: argparse.Namespace) -> int:
 def cmd_notation(args: argparse.Namespace) -> int:
     from .modules.notation import convert
 
-    convert(args.input, output=args.output, fmt=args.format)
+    convert(args.input, output=args.output, fmt=args.format, quantize_beats=args.quantize_beats or None)
     return 0
 
 
@@ -236,6 +236,8 @@ def build_parser() -> argparse.ArgumentParser:
     pn.add_argument("input")
     pn.add_argument("-o", "--output", required=True)
     pn.add_argument("-f", "--format", default="musicxml", choices=["musicxml", "pdf", "png", "svg", "midi"])
+    pn.add_argument("--quantize-beats", type=int, default=0, metavar="SUBDIV",
+                    help="snap notes to the beat grid before engraving (0 = off)")
     pn.set_defaults(func=cmd_notation)
 
     ptab = sub.add_parser("tab", help="guitar tab import/convert (Guitar Pro alternative)")

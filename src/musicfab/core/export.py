@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from .grid import snap_to_beat_grid
 from .project import Project
 
 
@@ -57,7 +58,7 @@ def to_midi(project: Project, path: str | Path, ticks_per_beat: int = 480) -> Pa
     return path
 
 
-def to_musicxml(project: Project, path: str | Path) -> Path:
+def to_musicxml(project: Project, path: str | Path, *, quantize_beats: int | None = None) -> Path:
     """Write a MusicXML score via music21.
 
     Direct note construction can produce durations that are not expressible in
@@ -68,6 +69,15 @@ def to_musicxml(project: Project, path: str | Path) -> Path:
     """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
+
+    if quantize_beats and quantize_beats >= 1:
+        beats = list(getattr(project, "beats", []) or [])
+        fallback = 60.0 / max(1e-6, float(project.tempo or 120.0))
+        for note in project.notes:
+            note.start = round(snap_to_beat_grid(note.start, beats, int(quantize_beats), fallback), 4)
+            note.end = round(snap_to_beat_grid(note.end, beats, int(quantize_beats), fallback), 4)
+            if note.end <= note.start:
+                note.end = round(note.start + fallback / int(quantize_beats), 4)
 
     import tempfile
 

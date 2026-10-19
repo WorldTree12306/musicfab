@@ -135,3 +135,25 @@ def test_tab_render_svg_and_html(tmp_path: Path):
     if importlib.util.find_spec("pymupdf") is not None:
         pdf = render_tab(src, tmp_path / "tab.pdf", fmt="pdf")
         assert pdf.read_bytes()[:5] == b"%PDF-"
+
+
+def test_notation_from_project_with_quantization(tmp_path: Path):
+    from musicfab.core.project import Note, Project
+    from musicfab.modules.notation import convert
+
+    proj = Project.from_notes(
+        [Note(0.13, 0.62, 60), Note(0.71, 1.18, 64), Note(1.29, 1.77, 67)],
+        name="q", tempo=120, time_signature="4/4",
+    )
+    proj.beats = [round(i * 0.5, 4) for i in range(30)]  # 120 BPM grid
+    path = proj.save(tmp_path / "q.mfproj.json")
+    xml = convert(path, output=tmp_path / "q.musicxml", fmt="musicxml", quantize_beats=1)
+    assert xml.exists()
+
+    from music21 import converter
+
+    parsed = converter.parse(str(xml))
+    notes = [n for n in parsed.flatten().notes]
+    assert len(notes) >= 3
+    for n in notes:
+        assert abs(n.offset / 1.0 - round(n.offset / 1.0)) < 1e-6 or abs(n.offset % 1.0) < 1e-6
