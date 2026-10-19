@@ -62,6 +62,13 @@ def test_merge_same_pitch_keeps_reattack():
     overlapping = [Note(0.0, 0.10, 60), Note(0.05, 0.20, 60)]
     assert len(_merge_same_pitch(overlapping)) == 1
 
+    # release-tail fragment of a sustained note should be merged
+    tail = [Note(0.0, 0.40, 60), Note(0.41, 0.47, 60)]
+    assert len(_merge_same_pitch(tail)) == 1
+    # two long notes a few ms apart are re-articulations, not fragments
+    reattack = [Note(0.0, 0.40, 60), Note(0.42, 0.82, 60)]
+    assert len(_merge_same_pitch(reattack)) == 2
+
 
 def test_notes_json_array_form_and_duration_validation(tmp_path: Path):
     pytest.importorskip("basic_pitch")

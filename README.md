@@ -112,4 +112,4 @@ python scripts/gen_test_audio.py    # 生成测试音频
 
 ## License
 
-代码审查记录与已知限制见 `docs/REVIEW.md`。变更记录见 [`CHANGELOG.md`](CHANGELOG.md)，发布流程见 [`docs/RELEASE.md`](docs/RELEASE.md)。本项目代码 MIT。第三方组件许可证见 `docs/LICENSES.md`；其中 GPL 工具（MuseScore、Rubber Band 等）一律以**子进程**方式调用，不作为库链接，避免许可证传染。
+代码审查记录与已知限制见 `docs/REVIEW.md`。能力对照见 [`docs/COMPARISON.md`](docs/COMPARISON.md)，变更记录见 [`CHANGELOG.md`](CHANGELOG.md)，发布流程与回归记录见 [`docs/RELEASE.md`](docs/RELEASE.md) / [`docs/REGRESSION.md`](docs/REGRESSION.md)。本项目代码 MIT。第三方组件许可证见 `docs/LICENSES.md`；其中 GPL 工具（MuseScore、Rubber Band 等）一律以**子进程**方式调用，不作为库链接，避免许可证传染。

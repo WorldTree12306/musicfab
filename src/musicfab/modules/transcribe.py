@@ -40,24 +40,29 @@ def _quiet():
             logging.disable(previous)
 
 
-def _merge_same_pitch(notes: list[Note], gap: float = 0.0) -> list[Note]:
-    """Merge *overlapping* notes with the same pitch.
+def _merge_same_pitch(notes: list[Note], gap: float = 0.03, tail_seconds: float = 0.08) -> list[Note]:
+    """Merge same-pitch note fragments emitted by the backend.
 
-    Backends sometimes emit a note twice (onset + frame detection) or split a
-    sustained tone.  Only real overlaps are merged so re-articulated repeated
-    notes (e.g. fast 16th-note passages) are preserved.
+    Basic Pitch sometimes splits a sustained note into a main segment plus a
+    short release tail (e.g. 0.40s + 0.06s).  Merge when the fragments overlap,
+    or when a *short* tail starts within ``gap`` seconds of the previous note.
+    Two long, similarly sized notes are treated as re-articulations and are
+    kept separate (preserves fast repeated notes).
     """
     if not notes:
         return notes
     notes = sorted(notes, key=lambda n: (n.pitch, n.start, n.end))
     merged: list[Note] = []
     for n in notes:
-        if merged and merged[-1].pitch == n.pitch and n.start < merged[-1].end - 1e-6 + gap:
+        if merged and merged[-1].pitch == n.pitch:
             prev = merged[-1]
-            prev.end = max(prev.end, n.end)
-            prev.velocity = max(prev.velocity, n.velocity)
-        else:
-            merged.append(n)
+            overlaps = n.start < prev.end - 1e-6
+            short_tail = (n.end - n.start) < tail_seconds and n.start <= prev.end + gap
+            if overlaps or short_tail:
+                prev.end = max(prev.end, n.end)
+                prev.velocity = max(prev.velocity, n.velocity)
+                continue
+        merged.append(n)
     merged.sort(key=lambda n: (n.start, n.pitch))
     return merged
 
