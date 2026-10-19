@@ -97,3 +97,18 @@ def test_tab_import_json_and_midi(tmp_path: Path, sample: str):
 
     midi = import_tab(src, output=tmp_path / "tab.mid", fmt="midi")
     assert midi.exists() and midi.stat().st_size > 50
+
+
+def test_notation_pdf_and_png(tmp_path: Path):
+    pytest.importorskip("pymupdf")
+    from musicfab.core.export import to_midi
+    from musicfab.core.project import Note, Project
+    from musicfab.modules.notation import convert
+
+    proj = Project.from_notes([Note(0.0, 0.5, 60), Note(0.5, 1.0, 64), Note(1.0, 1.6, 67)])
+    midi = to_midi(proj, tmp_path / "x.mid")
+
+    pdf = convert(midi, output=tmp_path / "x.pdf", fmt="pdf")
+    assert pdf.exists() and pdf.read_bytes()[:5] == b"%PDF-"
+    png = convert(midi, output=tmp_path / "x.png", fmt="png")
+    assert png.exists() and png.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"

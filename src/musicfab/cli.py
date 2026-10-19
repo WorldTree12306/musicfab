@@ -57,6 +57,22 @@ def cmd_shift(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_notes(args: argparse.Namespace) -> int:
+    from .modules.notes import apply_edits, detect_notes, write_template
+
+    if args.edits:
+        stats = apply_edits(args.audio, args.edits, output=args.output, model=args.model)
+        print(json.dumps(stats, indent=2, ensure_ascii=False))
+        return 0
+
+    edits_path = args.output if args.output and args.output.endswith(".json") else Path(args.audio).with_suffix(".edits.json")
+    tpl = write_template(args.audio, edits_path, model=args.model)
+    notes = detect_notes(args.audio, model=args.model)
+    print(f"detected {len(notes)} notes; editable table: {tpl}")
+    print("edit the JSON, then run: musicfab notes <audio> --edits <table> -o out.wav")
+    return 0
+
+
 def cmd_separate(args: argparse.Namespace) -> int:
     from .modules.separate import separate
 
@@ -116,6 +132,13 @@ def build_parser() -> argparse.ArgumentParser:
     ps.add_argument("--semitones", type=float, required=True)
     ps.add_argument("-o", "--output", required=True)
     ps.set_defaults(func=cmd_shift)
+
+    pnotes = sub.add_parser("notes", help="detect/edit individual notes and resynthesise (Melodyne alternative)")
+    pnotes.add_argument("audio")
+    pnotes.add_argument("--edits", help="edit table JSON produced by this command without --edits")
+    pnotes.add_argument("-o", "--output", help="output WAV (with --edits) or edit table JSON (without)")
+    pnotes.add_argument("--model", default="basicpitch")
+    pnotes.set_defaults(func=cmd_notes)
 
     psep = sub.add_parser("separate", help="stem separation (RipX alternative)")
     psep.add_argument("audio")

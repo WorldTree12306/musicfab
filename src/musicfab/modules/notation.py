@@ -103,7 +103,8 @@ def convert(input_path: str | Path, *, output: str | Path, fmt: str = "musicxml"
     if fmt == "midi":
         return _to_midi(src, dst)
 
-    # rendering formats: prefer MuseScore, then Verovio SVG (and cairosvg for raster)
+    # rendering formats: prefer MuseScore (best engraving), then Verovio SVG
+    # + PyMuPDF (pure-python, no system libraries), then cairosvg.
     if shutil.which("musescore4") or shutil.which("musescore") or find_musescore():
         try:
             return _render_with_musescore(src, dst)
@@ -114,23 +115,30 @@ def convert(input_path: str | Path, *, output: str | Path, fmt: str = "musicxml"
     try:
         _render_svg_with_verovio(src, svg_path)
     except RuntimeError:
-        # last resort: convert to musicxml first, then try MuseScore/Verovio again
+        # last resort: convert to musicxml first, then try Verovio again
         tmp_xml = dst.with_suffix(".tmp.musicxml")
         _to_musicxml(src, tmp_xml)
         try:
-            return _render_with_musescore(tmp_xml, dst)
-        except RuntimeError:
             _render_svg_with_verovio(tmp_xml, svg_path)
         finally:
             tmp_xml.unlink(missing_ok=True)
 
     if fmt == "svg":
         return svg_path
+
+    # PDF / PNG from the rendered SVG.  PyMuPDF is a self-contained wheel
+    # (MuPDF) that handles Verovio SVG well and needs no system cairo.
+    try:
+        return _svg_to_raster_or_pdf(svg_path, dst, fmt)
+    except RuntimeError:
+        pass
+
     try:
         import cairosvg
     except Exception as exc:  # pragma: no cover - platform dependent
         raise RuntimeError(
-            f"rendered SVG to {svg_path}, but raster/PDF export needs MuseScore or cairosvg: {exc}"
+            f"rendered SVG to {svg_path}, but PDF/PNG export needs PyMuPDF "
+            f"(pip install pymupdf), MuseScore, or cairosvg: {exc}"
         ) from exc
     if fmt == "png":
         cairosvg.svg2png(url=str(svg_path), write_to=str(dst))
@@ -138,4 +146,26 @@ def convert(input_path: str | Path, *, output: str | Path, fmt: str = "musicxml"
         cairosvg.svg2pdf(url=str(svg_path), write_to=str(dst))
     else:
         raise ValueError(f"unsupported render format: {fmt}")
+    return dst
+
+
+def _svg_to_raster_or_pdf(svg_path: Path, dst: Path, fmt: str, dpi: int = 150) -> Path:
+    """Convert a Verovio SVG to PDF or PNG using PyMuPDF (no system libs)."""
+    try:
+        import pymupdf
+    except ImportError as exc:  # pragma: no cover - optional dependency
+        raise RuntimeError("PyMuPDF not installed (pip install pymupdf)") from exc
+    doc = pymupdf.open(str(svg_path))
+    try:
+        if fmt == "pdf":
+            doc.save(str(dst))
+        elif fmt == "png":
+            page = doc[0]
+            zoom = dpi / 72.0
+            pix = page.get_pixmap(matrix=pymupdf.Matrix(zoom, zoom), alpha=False)
+            pix.save(str(dst))
+        else:
+            raise ValueError(f"unsupported render format: {fmt}")
+    finally:
+        doc.close()
     return dst

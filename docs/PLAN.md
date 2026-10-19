@@ -15,6 +15,7 @@
 ## Phase 2 — practice（Transcribe!）/ shift（Melodyne）✅
 - practice：librosa 变速/移调/循环切片 + `.practice.json` 参数记录
 - shift：相位声码器变调（音频级）+ `shift_notes`（谱面级，不改音频）
+- notes：逐音编辑（semitones / start_shift / duration_scale / velocity_scale），只重合成被编辑片段，其余原音保留 ✅
 - 验收：0.5x 时长≈2x（容差 25%）✅；+12 半音主频≈2x ✅
 
 ## Phase 3 — separate（RipX）✅
@@ -23,7 +24,7 @@
 - 验收：4 轨输出 + 44.1k 采样率 + stems.json 清单 ✅（5.3s 音频 CPU 9.4s）
 
 ## Phase 4 — notation（Capella）/ tab（Guitar Pro）✅
-- notation：MusicXML/MIDI 互转（music21）、SVG 渲染（Verovio）、PDF/PNG（MuseScore CLI 子进程，GPL 隔离）
+- notation：MusicXML/MIDI 互转（music21）、SVG（Verovio）、PDF/PNG（PyMuPDF 内置；MuseScore 可选更佳排版）
 - tab：PyGuitarPro 读取 `.gp3/.gp4/.gp5` → JSON/MIDI/MusicXML；`.gpx` 需先转（文档说明）
 - 验收：`.gp5` 样例解析出音轨/音符并导出 MIDI ✅；MIDI→MusicXML→SVG 链路 ✅
 

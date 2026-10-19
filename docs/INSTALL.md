@@ -23,7 +23,7 @@ musicfab version
 | transcribe 钢琴增强 | `pip install piano_transcription_inference` | 是（首次下载权重） |
 | practice / shift | `pip install librosa` | 否 |
 | separate（RipX） | `pip install "demucs==4.0.1" --no-deps` + `pip install dora-search openunmix einops julius lameenc pyyaml tqdm` | 是（首次下载 80 MB htdemucs 权重） |
-| notation（Capella） | `pip install verovio`；PDF/PNG 另装 MuseScore 4 | 否 |
+| notation（Capella） | `pip install verovio pymupdf`（MuseScore 4 可选，排版更佳） | 否 |
 | tab（Guitar Pro） | `pip install pyguitarpro` | 否 |
 
 > Demucs 需要 torch：`pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu`（CPU 版约 200 MB）。
@@ -33,8 +33,13 @@ musicfab version
 ```bash
 python scripts/gen_test_audio.py      # 生成合成测试音频
 python scripts/fetch_fixtures.py      # 可选：下载 .gp5 样例（PyGuitarPro 测试集）
-python -m pytest -q                   # 11 tests
+python -m pytest -q                   # 15 tests
 python examples/demo.py               # 端到端演示 -> build/demo/
+
+逐音编辑（Melodyne 式）：
+python -m musicfab.cli notes song.wav -o edits.json     # 生成编辑表（检测音符）
+# 修改 edits.json 里某条的 semitones / duration_scale / velocity_scale
+python -m musicfab.cli notes song.wav --edits edits.json -o edited.wav
 ```
 
 示例输出（本机实测，CPU）：
@@ -57,11 +62,14 @@ pyinstaller -n musicfab --onefile --collect-submodules musicfab src/musicfab/__m
 - 轻量包（只含 transcribe/practice/shift/notation/tab）：约 60–80 MB。
 - 含 torch/demucs 的完整包会到 1 GB 以上；建议用「程序 + 首次运行时下载权重」的方式分发。
 
-## 5. MuseScore（PDF/PNG 排版）
+## 5. PDF/PNG 导出与 MuseScore（可选）
 
-1. 从 <https://musescore.org> 下载 MuseScore 4（GPL）；
-2. 安装后确保 `musescore4`/`MuseScore4.exe` 在 PATH 或默认安装目录；
-3. `musicfab notation song.musicxml -o song.pdf -f pdf`。
+默认路线：MusicXML → Verovio SVG → PyMuPDF 出 PDF/PNG，只需 `pip install verovio pymupdf`，无需系统库。
+
+若要更好的排版（连音、歌词、多声部更精确），可另装 MuseScore 4（GPL）：
+1. 从 <https://musescore.org> 下载安装；
+2. 确保 `musescore4`/`MuseScore4.exe` 在 PATH 或默认安装目录（也可设 `MUSESCORE_BIN`）；
+3. `musicfab notation song.musicxml -o song.pdf -f pdf` 会自动优先用 MuseScore。
 
 musicfab 只通过子进程调用 MuseScore，不做链接，避免 GPL 传染。
 

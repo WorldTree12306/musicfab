@@ -5,7 +5,7 @@ musicfab 用开源模型与库重新实现六个常见商业音乐工具的核�
 | 原商业软件 | musicfab 子命令 | 开源技术栈 |
 |---|---|---|
 | AnthemScore（音频→乐谱） | `musicfab transcribe` | piano_transcription_inference / basic-pitch / MT3 + Beat-This + music21 |
-| Melodyne（音符级修音/变调） | `musicfab shift` / `musicfab notes edit` | CREPE/pYIN + pyworld/PSOLA + librosa |
+| Melodyne（音符级修音/变调） | `musicfab shift` / `musicfab notes` | librosa 相位声码器（逐音变调/时值/力度，仅重合成被编辑片段） |
 | Transcribe!（慢放/循环/移调） | `musicfab practice` | librosa / Rubber Band + 循环切片 |
 | RipX（分轨+转谱+DAW） | `musicfab separate` + `transcribe` | Demucs / Spleeter + Basic Pitch + MIDI 工程 |
 | Capella（记谱/排版） | `musicfab notation` | MuseScore CLI / LilyPond / Verovio |
@@ -20,6 +20,9 @@ python -m pip install -e .
 musicfab --version
 musicfab probe your_song.mp3
 musicfab transcribe your_song.mp3 -o out.mid --musicxml out.musicxml
+musicfab notes your_song.mp3 -o edits.json      # 生成逐音编辑表
+musicfab notes your_song.mp3 --edits edits.json -o edited.wav
+musicfab notation out.musicxml -o out.pdf -f pdf   # 内置 PDF（PyMuPDF）
 ```
 
 ## 子命令
@@ -29,9 +32,10 @@ musicfab transcribe your_song.mp3 -o out.mid --musicxml out.musicxml
 | `probe` | 查看音频信息（格式/采样率/时长/声道） | ✅ |
 | `transcribe` | 音频转 MIDI/MusicXML（AnthemScore 替代） | ✅ basic-pitch(ONNX) / PTI 可选 |
 | `practice` | 变速/移调/循环练习（Transcribe! 替代） | ✅ |
-| `shift` | 音符级变调（Melodyne 替代） | ✅ 音频级 / 谱面级 `shift_notes` |
+| `shift` | 整段变调（Melodyne 替代） | ✅ |
+| `notes` | 逐音编辑 + 重合成（Melodyne 替代） | ✅ 变调/时值/力度，只改选中音符 |
 | `separate` | 分轨（RipX 替代） | ✅ htdemucs 4 轨，可 `--transcribe` 逐轨转谱 |
-| `notation` | 记谱/排版/导出（Capella 替代） | ✅ MusicXML/MIDI/SVG；PDF/PNG 需 MuseScore CLI |
+| `notation` | 记谱/排版/导出（Capella 替代） | ✅ MusicXML/MIDI/SVG/PDF/PNG（PDF/PNG 用 PyMuPDF，可选 MuseScore 更佳排版） |
 | `tab` | 六线谱导入（Guitar Pro 替代） | ✅ `.gp3/.gp4/.gp5` → JSON/MIDI/MusicXML |
 
 ## 安装可选后端
@@ -49,8 +53,8 @@ pip install "demucs==4.0.1" --no-deps
 pip install dora-search openunmix einops julius lameenc pyyaml tqdm
 pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
 
-# 六线谱 / 渲染
-pip install pyguitarpro verovio
+# 六线谱 / 渲染 / PDF 导出
+pip install pyguitarpro verovio pymupdf
 # PDF/PNG 导出另需 MuseScore 4（GPL，仅子进程调用）
 ```
 
