@@ -41,6 +41,7 @@ musicfab separate song.mp3 --transcribe --auto-tempo -o stems/  # 分轨+逐轨�
 musicfab daw stems/ -o stems/daw/                    # 打包 DAW 工程
 musicfab score stems/ -o full.pdf --quantize-beats 1  # 分轨合成总谱
 musicfab rip song.wav -o out/ --quantize-beats 1     # RipX 式一键工作流
+musicfab rip song.wav -o out/ --no-separate          # 只转谱+总谱（不跑 Demucs，最快）
 ```
 
 ## 子命令
@@ -60,7 +61,7 @@ musicfab rip song.wav -o out/ --quantize-beats 1     # RipX 式一键工作流
 | `tab` | 六线谱导入/渲染（Guitar Pro 替代） | ✅ `.gp3/.gp4/.gp5` → JSON/MIDI/MusicXML/SVG/HTML |
 | `beats` | 速度/拍点/下拍估计 | ✅ 输出 JSON（tempo/beats/downbeats + 低频重音相位/置信度） |
 | `daw` | 分轨工程打包（RipX 替代） | ✅ 多轨 MIDI + tracks.json + README + 拍点/小节 `grid.json` |
-| `rip` | 一键工作流：分轨→转谱→DAW→总谱（RipX 替代） | ✅ 一条命令产出 stems/projects/MIDI/daw/score |
+| `rip` | 一键工作流：分轨→转谱→DAW→总谱（RipX 替代） | ✅ 一条命令产出 stems/projects/MIDI/daw/score；`--no-separate` 轻量模式只转谱+出谱 |
 
 ## 安装可选后端
 

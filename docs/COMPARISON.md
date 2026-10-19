@@ -22,6 +22,7 @@
 | 练习一首歌 | `gui song.wav`（拖拽 A/B 或按小节循环）；或 `practice --loop-beats 8` |
 | 修一个错音 | `notes song.wav -o edits.json` → 改 JSON → `notes song.wav --edits edits.json -o fixed.wav` |
 | 全曲拆解（RipX 式） | `rip song.wav -o out/ --quantize-beats 1`（一次出 stems/projects/MIDI/DAW/总谱） |
+| 快速扒谱（不拆轨） | `rip song.wav -o out/ --no-separate`（转谱 + 出谱，最快） |
 | 分轨后进 DAW | `separate song.wav --transcribe --auto-tempo -o stems/` → `daw stems/` |
 | 六线谱查看/打印 | `tab song.gp5 -f html`（浏览器打开）或 `-f pdf` |
 

@@ -20,7 +20,7 @@
   - `--transcribe` 逐轨转谱、`--auto-tempo` 每轨测速、`--quantize-beats` 逐轨量化
 - **daw** — 分轨工程打包为多轨 MIDI + `tracks.json` + `grid.json`（拍点/小节）+ README（Ardour/LMMS/Reaper 可导入）
 - **score** — 分轨工程合成多轨总谱（MusicXML/PDF/PNG/SVG，可按拍点量化）
-- **rip** — 一键工作流：分轨 → 逐轨转谱 → DAW 工程 + 总谱（RipX 式）
+- **rip** — 一键工作流：分轨 → 逐轨转谱 → DAW 工程 + 总谱（RipX 式）；`--no-separate` 轻量模式只做转谱+出谱
 - **notation** — 记谱/排版（Capella 替代）
   - MusicXML/MIDI 互转（music21）、SVG（Verovio）、PNG/PDF（resvg + PyMuPDF）
 - **tab** — 六线谱（Guitar Pro 替代）

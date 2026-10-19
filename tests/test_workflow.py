@@ -36,3 +36,20 @@ def test_rip_workflow_end_to_end(tmp_path: Path):
         assert path.exists()
         if path.suffix == ".pdf":
             assert path.read_bytes()[:5] == b"%PDF-"
+
+
+def test_rip_transcribe_only(tmp_path: Path):
+    pytest.importorskip("basic_pitch")
+    audio = FIX / "melody.wav"
+    if not audio.exists():
+        pytest.skip("fixture melody.wav missing")
+    from musicfab.modules.workflow import rip
+
+    out = tmp_path / "lite"
+    result = rip(audio, out, separate_stems=False, auto_tempo=False, quantize_beats=1)
+    assert result["mode"] == "transcribe"
+    assert Path(result["project"]).exists()
+    assert Path(result["midi"]).exists()
+    assert Path(result["musicxml"]).exists()
+    assert result["notes"] >= 8
+    assert (out / "rip.json").exists()

@@ -162,6 +162,7 @@ def cmd_rip(args: argparse.Namespace) -> int:
         chunk_seconds=args.chunk_seconds,
         make_score=not args.no_score,
         score_format=args.score_format,
+        separate_stems=not args.no_separate,
     )
     print(json.dumps(result, indent=2, ensure_ascii=False))
     return 0
@@ -289,6 +290,8 @@ def build_parser() -> argparse.ArgumentParser:
     prip.add_argument("--no-auto-tempo", action="store_true", help="skip per-stem tempo detection")
     prip.add_argument("--quantize-beats", type=int, default=0, metavar="SUBDIV")
     prip.add_argument("--chunk-seconds", type=float, default=0.0)
+    prip.add_argument("--no-separate", action="store_true",
+                      help="transcribe only (no Demucs stems/DAW), much faster")
     prip.add_argument("--no-score", action="store_true", help="skip multi-part score generation")
     prip.add_argument("--score-format", default="pdf", choices=["pdf", "png", "svg", "musicxml"])
     prip.set_defaults(func=cmd_rip)
