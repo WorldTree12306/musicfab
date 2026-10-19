@@ -1,5 +1,7 @@
 # musicfab — 六个商业音乐软件的开源免费替代
 
+[![ci](https://github.com/WorldTree12306/musicfab/actions/workflows/ci.yml/badge.svg)](https://github.com/WorldTree12306/musicfab/actions/workflows/ci.yml)
+
 musicfab 用开源模型与库重新实现六个常见商业音乐工具的核心能力，全部可离线运行、可脚本化、可批量处理。
 
 | 原商业软件 | musicfab 子命令 | 开源技术栈 |

@@ -74,5 +74,6 @@ dist/musicfab.exe   # 185 MB, onefile
 - [x] 六大替代模块可运行并通过回归
 - [x] 文档（README/INSTALL/PLAN/LICENSES/COMPAT/REVIEW/COMPARISON/RELEASE/CHANGELOG）
 - [x] 演示与截图
-- [ ] 推送到 GitHub（等待用户创建空仓库；脚本 `scripts/publish_github.ps1` 已就绪）
-- [ ] CI 首跑与 `v0.1.0` tag
+- [x] 推送到 GitHub：`github.com/WorldTree12306/musicfab`（main 已推送）
+- [x] CI 首跑通过（Windows/Linux × py3.11/3.12，修复 onnxruntime 依赖后全绿）
+- [x] `v0.1.0` tag 已推送
