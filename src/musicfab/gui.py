@@ -37,12 +37,17 @@ def _make_waveform_class():
 
     class Waveform(QtWidgets.QWidget):
         positionChanged = QtCore.Signal(float)
+        selectionChanged = QtCore.Signal(float, float)
 
         def __init__(self) -> None:
             super().__init__()
             self._peaks = []  # list of (min, max) per column
             self._progress = 0.0
+            self._sel_start = None
+            self._sel_end = None
+            self._drag_anchor = None
             self.setMinimumHeight(120)
+            self.setMouseTracking(True)
             self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 
         def set_peaks(self, peaks) -> None:
@@ -52,6 +57,46 @@ def _make_waveform_class():
         def set_progress(self, value: float) -> None:
             self._progress = max(0.0, min(1.0, float(value)))
             self.update()
+
+        def set_selection(self, start, end) -> None:
+            if start is None or end is None:
+                self._sel_start = self._sel_end = None
+            else:
+                a, b = sorted((float(start), float(end)))
+                self._sel_start = max(0.0, min(1.0, a))
+                self._sel_end = max(0.0, min(1.0, b))
+            self.update()
+            if self._sel_start is not None:
+                self.selectionChanged.emit(self._sel_start, self._sel_end)
+
+        def selection(self):
+            if self._sel_start is None:
+                return None
+            return (self._sel_start, self._sel_end)
+
+        # -- mouse: drag to define an A/B loop region -------------------
+        def _fraction(self, event) -> float:
+            x = event.position().x() if hasattr(event, "position") else event.x()
+            return max(0.0, min(1.0, x / max(1, self.width())))
+
+        def mousePressEvent(self, event) -> None:  # noqa: N802
+            if not self._peaks:
+                return
+            self._drag_anchor = self._fraction(event)
+            self.set_selection(self._drag_anchor, self._drag_anchor)
+
+        def mouseMoveEvent(self, event) -> None:  # noqa: N802
+            if self._drag_anchor is None or not self._peaks:
+                return
+            self.set_selection(self._drag_anchor, self._fraction(event))
+
+        def mouseReleaseEvent(self, event) -> None:  # noqa: N802
+            self._drag_anchor = None
+
+        def mouseDoubleClickEvent(self, event) -> None:  # noqa: N802
+            self._drag_anchor = None
+            self.set_selection(None, None)
+            self.selectionChanged.emit(0.0, 0.0)
 
         def paintEvent(self, event) -> None:  # noqa: N802 - Qt naming
             painter = QtGui.QPainter(self)
@@ -68,8 +113,15 @@ def _make_waveform_class():
             for x in range(width):
                 lo, hi = self._peaks[min(len(self._peaks) - 1, int(x * step))]
                 painter.drawLine(x, int(mid - hi * mid), x, int(mid - lo * mid))
+            if self._sel_start is not None:
+                x0 = int(self._sel_start * width)
+                x1 = int(self._sel_end * width)
+                painter.fillRect(x0, 0, max(1, x1 - x0), height, QtGui.QColor(240, 136, 62, 60))
+                painter.setPen(QtGui.QPen(QtGui.QColor("#f0883e"), 1))
+                painter.drawLine(x0, 0, x0, height)
+                painter.drawLine(x1, 0, x1, height)
             px = int(self._progress * width)
-            painter.setPen(QtGui.QPen(QtGui.QColor("#f0883e"), 2))
+            painter.setPen(QtGui.QPen(QtGui.QColor("#ffffff"), 2))
             painter.drawLine(px, 0, px, height)
             painter.end()
 
@@ -98,6 +150,8 @@ def make_window():
 
             self.waveform = Waveform()
             self.waveform.positionChanged.connect(self._seek)
+            self.waveform.selectionChanged.connect(self._on_selection)
+            self._sel: tuple[float, float] | None = None
 
             self.open_btn = QtWidgets.QPushButton("Open audio…")
             self.play_btn = QtWidgets.QPushButton("Play")
@@ -106,6 +160,10 @@ def make_window():
             self.render_btn.setEnabled(False)
             self.loop_check = QtWidgets.QCheckBox("Loop")
             self.loop_check.setChecked(True)
+            self.ab_check = QtWidgets.QCheckBox("A/B loop")
+            self.ab_check.setEnabled(False)
+            self.sel_label = QtWidgets.QLabel("A/B: —")
+            self.sel_label.setMinimumWidth(150)
 
             self.speed = QtWidgets.QSlider(QtCore.Qt.Horizontal)
             self.speed.setRange(50, 150)
@@ -140,6 +198,8 @@ def make_window():
             controls.addWidget(self.play_btn)
             controls.addWidget(self.render_btn)
             controls.addWidget(self.loop_check)
+            controls.addWidget(self.ab_check)
+            controls.addWidget(self.sel_label)
             controls.addSpacing(12)
             controls.addWidget(QtWidgets.QLabel("speed"))
             controls.addWidget(self.speed, 1)
@@ -187,7 +247,25 @@ def make_window():
             self.statusBar().showMessage(
                 f"{self.audio_path.name} · {info.get('sample_rate', sr)} Hz · {self._duration:.1f}s"
             )
+            self._sel = None
+            self.waveform.set_selection(None, None)
+            self.ab_check.setEnabled(False)
+            self.ab_check.setChecked(False)
+            self.sel_label.setText("A/B: —")
             self._on_duration(int(self._duration * 1000))
+
+        def _on_selection(self, start: float, end: float) -> None:
+            if start is None or end is None or abs(end - start) < 1e-4:
+                self._sel = None
+                self.ab_check.setEnabled(False)
+                self.ab_check.setChecked(False)
+                self.sel_label.setText("A/B: —")
+                return
+            self._sel = (min(start, end), max(start, end))
+            self.ab_check.setEnabled(True)
+            self.sel_label.setText(
+                f"A/B: {_fmt(self._sel[0] * self._duration * 1000)}–{_fmt(self._sel[1] * self._duration * 1000)}"
+            )
 
         # -- rendering -------------------------------------------------
         def render_preview(self, output: str | Path) -> Path:
@@ -198,8 +276,10 @@ def make_window():
             tempo = self.speed.value() / 100.0
             semitones = float(self.semi.value())
             loop = None
+            if self._sel and self.ab_check.isChecked():
+                loop = (self._sel[0] * self._duration, self._sel[1] * self._duration)
             bars = int(self.bar_loop.value())
-            if bars > 0:
+            if loop is None and bars > 0:
                 from .modules.beats import detect_beats
 
                 info = detect_beats(self.audio_path)

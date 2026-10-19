@@ -41,7 +41,7 @@ musicfab daw stems/ -o stems/daw/                    # 打包 DAW 工程
 | `probe` | 查看音频信息（格式/采样率/时长/声道） | ✅ |
 | `transcribe` | 音频转 MIDI/MusicXML（AnthemScore 替代） | ✅ basic-pitch(ONNX) / PTI；`--auto-tempo` 自动测速；`--quantize-beats` 按拍点量化 |
 | `practice` | 变速/移调/循环练习（Transcribe! 替代） | ✅ `--loop-beats N` 按拍点、`--loop-bars N` 按小节循环 |
-| `gui` | 离线练习播放器（波形/变速/移调/循环） | ✅ `pip install "musicfab[gui]"` 后 `musicfab gui file.wav` |
+| `gui` | 离线练习播放器（波形/拖拽 A/B 选区/变速/移调/按小节循环） | ✅ `pip install "musicfab[gui]"` 后 `musicfab gui file.wav` |
 | `shift` | 整段变调（Melodyne 替代） | ✅ |
 | `notes` | 逐音编辑 + 重合成（Melodyne 替代） | ✅ 变调/时值/力度，只改选中音符 |
 | `separate` | 分轨（RipX 替代） | ✅ htdemucs 4 轨；分块 overlap-add；`--transcribe` 逐轨转谱 + `--auto-tempo` + `--quantize-beats` |

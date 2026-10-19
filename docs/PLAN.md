@@ -20,7 +20,7 @@
 - shift：相位声码器变调（音频级）+ `shift_notes`（谱面级，不改音频）
 - notes：逐音编辑（semitones / start_shift / duration_scale / velocity_scale），只重合成被编辑片段，其余原音保留 ✅
 - 验收：0.5x 时长≈2x（容差 25%）✅；+12 半音主频≈2x ✅
-- GUI：`musicfab gui`（波形/变速/移调/小节循环，PySide6 可选依赖）✅
+- GUI：`musicfab gui`（波形/拖拽 A/B 选区/变速/移调/小节循环，PySide6 可选依赖）✅
 
 ## Phase 3 — separate（RipX）✅
 - Demucs htdemucs（4 轨：drums/bass/other/vocals），权重首次自动下载（80 MB）
