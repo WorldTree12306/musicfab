@@ -82,6 +82,12 @@ def cmd_daw(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_gui(args: argparse.Namespace) -> int:
+    from .gui import main as gui_main
+
+    return gui_main([args.audio] if args.audio else [])
+
+
 def cmd_practice(args: argparse.Namespace) -> int:
     from .modules.practice import practice
 
@@ -192,6 +198,10 @@ def build_parser() -> argparse.ArgumentParser:
     pb.add_argument("-o", "--output", help="write beats JSON (default: print)")
     pb.add_argument("--beats-per-bar", type=int, default=4)
     pb.set_defaults(func=cmd_beats)
+
+    pgui = sub.add_parser("gui", help="open the offline practice GUI (Transcribe! alternative)")
+    pgui.add_argument("audio", nargs="?", help="audio file to open")
+    pgui.set_defaults(func=cmd_gui)
 
     pd = sub.add_parser("daw", help="assemble a DAW import bundle from stem projects (RipX alternative)")
     pd.add_argument("input_dir", help="directory produced by 'separate --transcribe'")

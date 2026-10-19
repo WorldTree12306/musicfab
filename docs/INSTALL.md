@@ -29,12 +29,22 @@ musicfab version
 
 > Demucs 需要 torch：`pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu`（CPU 版约 200 MB）。
 
+## 2.5 图形界面（可选）
+
+```bash
+pip install "musicfab[gui]"     # PySide6
+musicfab gui song.wav
+```
+
+界面功能：波形总览、播放/暂停、0.5x–1.5x 变速、±12 半音移调、按小节循环（用自动检测拍号）。
+渲染在本地完成（与 `musicfab practice` 同一套相位声码器），不联网。
+
 ## 3. 测试与演示
 
 ```bash
 python scripts/gen_test_audio.py      # 生成合成测试音频
 python scripts/fetch_fixtures.py      # 可选：下载 .gp5 样例（PyGuitarPro 测试集）
-python -m pytest -q                   # 34 tests
+python -m pytest -q                   # 35 tests
 python examples/demo.py               # 端到端演示 -> build/demo/
 
 逐音编辑（Melodyne 式）：

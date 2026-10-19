@@ -13,6 +13,8 @@ musicfab 用开源模型与库重新实现六个常见商业音乐工具的核�
 
 > **合规声明**：本项目是 clean-room 实现，只使用开源组件；不包含、不反编译、不分发任何商业软件（AnthemScore、Melodyne、Transcribe!、RipX、Capella、Guitar Pro）的代码、模型权重或授权数据。详见 `docs/LICENSES.md`。
 
+![practice GUI](docs/gui.png)
+
 ## 快速开始
 
 ```bash
@@ -39,6 +41,7 @@ musicfab daw stems/ -o stems/daw/                    # 打包 DAW 工程
 | `probe` | 查看音频信息（格式/采样率/时长/声道） | ✅ |
 | `transcribe` | 音频转 MIDI/MusicXML（AnthemScore 替代） | ✅ basic-pitch(ONNX) / PTI；`--auto-tempo` 自动测速；`--quantize-beats` 按拍点量化 |
 | `practice` | 变速/移调/循环练习（Transcribe! 替代） | ✅ `--loop-beats N` 按拍点、`--loop-bars N` 按小节循环 |
+| `gui` | 离线练习播放器（波形/变速/移调/循环） | ✅ `pip install "musicfab[gui]"` 后 `musicfab gui file.wav` |
 | `shift` | 整段变调（Melodyne 替代） | ✅ |
 | `notes` | 逐音编辑 + 重合成（Melodyne 替代） | ✅ 变调/时值/力度，只改选中音符 |
 | `separate` | 分轨（RipX 替代） | ✅ htdemucs 4 轨；分块 overlap-add（`--chunk-seconds`，长音频低内存）；`--transcribe` 逐轨转谱 + `--auto-tempo` |
