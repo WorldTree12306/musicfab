@@ -45,7 +45,7 @@ musicfab gui song.wav
 python scripts/gen_test_audio.py      # 生成合成测试音频
 python scripts/fetch_fixtures.py      # 可选：下载 .gp5 样例（PyGuitarPro 测试集）
 musicfab doctor                       # 环境自检（JSON）
-python -m pytest -q                   # 58 tests
+python -m pytest -q                   # 65 tests
 python examples/demo.py               # 端到端演示 -> build/demo/
 
 逐音编辑（Melodyne 式）：

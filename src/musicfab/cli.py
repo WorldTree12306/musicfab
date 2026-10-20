@@ -270,7 +270,8 @@ def build_parser() -> argparse.ArgumentParser:
     psep.add_argument("--model", default="htdemucs")
     psep.add_argument("-o", "--output-dir", required=True)
     psep.add_argument("--transcribe", action="store_true", help="also transcribe every stem to a project/MIDI")
-    psep.add_argument("--auto-tempo", action="store_true", help="detect tempo per stem during --transcribe")
+    psep.add_argument("--auto-tempo", action="store_true",
+                      help="detect tempo once on the input and share it across stems during --transcribe")
     psep.add_argument("--tempo", type=float, default=120.0, help="tempo used when --transcribe without --auto-tempo")
     psep.add_argument("--shifts", type=int, default=0, help="demucs shift averaging (higher = slower/better)")
     psep.add_argument("--chunk-seconds", type=float, default=0.0,

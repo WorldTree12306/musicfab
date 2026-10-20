@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 — 2026-10-20
+
+优化批次二（GLM 审查 #2/#3/#4）：
+
+- **notation / export**：`to_musicxml` 改为 music21 直接构造（每轨一个 Part、保留 partName/tempo/拍号、不可记谱时值拆成 tie 链、输入 Project 不再被修改）；显式量化按拍格吸附后落到 1/16 note 网格，避免 MusicXML 不可记谱的碎时值；异常时回退旧 MIDI 路径
+- **transcribe**：Basic Pitch ONNX 模型/会话模块级缓存，多文件/多 stem 批量转谱不再重复建会话
+- **separate**：`--auto-tempo` 改为在 mixture 上只测一次并共享给所有 stem（修复各 stem 拍格不一致导致的总谱/DAW 错位）；`--no-separate` 与 rip 复用同一测速逻辑
+- **separate 分块模式**：输入两侧 reflect-pad 半个 segment（消除首尾上下文截断）、累加器就地除法（峰值内存 O(chunk)）、memmap 分块流式写 WAV、失败时清理 `.chunked` 临时目录
+- 测试：58 → 65 项
+
 ## 0.1.1 — 2026-10-20
 
 优化批次一（GLM 审查后修复）：

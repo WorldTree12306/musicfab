@@ -14,6 +14,7 @@ stays around one chunk instead of all four full-length stems.
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -21,6 +22,34 @@ import numpy as np
 from ..core import audio as audio_io
 
 AUTO_CHUNK_THRESHOLD_SECONDS = 240.0
+
+
+def shared_tempo_info(
+    src: str | Path,
+    *,
+    fallback_tempo: float = 120.0,
+    fallback_signature: str = "4/4",
+) -> dict:
+    """Detect tempo/beats **once on the mixture** and share across all stems.
+
+    Returns ``{"tempo", "time_signature", "beats"}``; ``beats`` is ``None``
+    when detection failed and callers should fall back to a fixed tempo.
+    """
+    try:
+        from .beats import detect_beats
+
+        info = detect_beats(src)
+        return {
+            "tempo": float(info["tempo"]),
+            "time_signature": str(info["time_signature"]),
+            "beats": list(info["beats"]),
+        }
+    except Exception:  # noqa: BLE001 - beat detection is best-effort
+        return {
+            "tempo": float(fallback_tempo),
+            "time_signature": str(fallback_signature),
+            "beats": None,
+        }
 
 
 def _as_stereo(data: np.ndarray) -> np.ndarray:
@@ -45,8 +74,16 @@ def _transition_weight(segment_length: int):
     return weight / weight.max()
 
 
-def _separate_chunked(net, wav, sr: int, sources: list[str], out_dir: Path, overlap: float, chunk_seconds: float):
-    """Overlap-add separation with disk-backed accumulators (low RAM)."""
+def _separate_chunked(
+    net, wav, sr: int, sources: list[str], out_dir: Path, overlap: float, chunk_seconds: float
+) -> tuple[list[Path], int]:
+    """Overlap-add separation with disk-backed accumulators (low RAM).
+
+    Returns ``(memmap_paths, pad)``.  The input is reflect-padded by half a
+    segment on both sides so the first/last chunks see full context (matching
+    Demucs' own split behaviour); the caller reads the result back from
+    ``[pad : pad + original_length]``.
+    """
     import torch
     from demucs.apply import apply_model
 
@@ -55,15 +92,20 @@ def _separate_chunked(net, wav, sr: int, sources: list[str], out_dir: Path, over
     segment_length = max(int(sr * 0.5), int(sr * float(chunk_seconds)))
     stride = max(1, int(segment_length * (1.0 - max(0.0, min(0.9, overlap)))))
     weight = _transition_weight(segment_length).numpy()
+    # reflect padding needs pad <= len - 1; degenerate inputs skip padding
+    pad = min(segment_length // 2, max(0, total - 1))
+    if pad > 0:
+        wav = torch.nn.functional.pad(wav, (pad, pad), mode="reflect")
+    padded_total = wav.shape[-1]
 
     tmp_dir = out_dir / ".chunked"
     tmp_dir.mkdir(parents=True, exist_ok=True)
     paths = [tmp_dir / f"{name}.f32" for name in sources]
-    accum = [np.memmap(p, dtype=np.float32, mode="w+", shape=(channels, total)) for p in paths]
-    weight_sum = np.zeros(total, dtype=np.float32)
+    accum = [np.memmap(p, dtype=np.float32, mode="w+", shape=(channels, padded_total)) for p in paths]
+    weight_sum = np.zeros(padded_total, dtype=np.float32)
 
     try:
-        for offset in range(0, total, stride):
+        for offset in range(0, padded_total, stride):
             seg = wav[..., offset: offset + segment_length]
             actual = int(seg.shape[-1])
             if actual < segment_length:
@@ -85,11 +127,11 @@ def _separate_chunked(net, wav, sr: int, sources: list[str], out_dir: Path, over
 
         weight_sum = np.maximum(weight_sum, 1e-8)
         for i in range(len(sources)):
-            accum[i][...] = accum[i][...] / weight_sum
+            accum[i][:, :] /= weight_sum  # in-place broadcast; no full-track temp array
             accum[i].flush()
     finally:
-        del accum
-    return paths
+        del accum  # close memmap handles before any cleanup path
+    return paths, pad
 
 
 def separate(
@@ -146,25 +188,33 @@ def separate(
     chunked = effective_chunk > 0
 
     if chunked:
-        raw_paths = _separate_chunked(net, wav, sr, sources, out_dir, overlap, effective_chunk)
+        tmp_dir = out_dir / ".chunked"
         stems: dict[str, str] = {}
         try:
+            raw_paths, pad = _separate_chunked(net, wav, sr, sources, out_dir, overlap, effective_chunk)
+            padded_total = wav.shape[-1] + 2 * pad
+            import soundfile as sf
+
+            block_frames = 1_000_000  # stream blocks; never materialise a full stem
             for name, path in zip(sources, raw_paths):
-                arr = np.memmap(path, dtype=np.float32, mode="r", shape=(wav.shape[1], wav.shape[-1]))
-                values = arr[...].astype(np.float32) * float(ref.std()) + float(ref.mean())
-                del arr
-                stem_path = out_dir / f"{name}.wav"
-                audio_io.write(stem_path, values.T, sr)
-                stems[name] = str(stem_path)
-                del values
+                arr = np.memmap(path, dtype=np.float32, mode="r", shape=(wav.shape[1], padded_total))
+                try:
+                    stem_path = out_dir / f"{name}.wav"
+                    with sf.SoundFile(
+                        str(stem_path), mode="w", samplerate=sr, channels=wav.shape[1], subtype="FLOAT"
+                    ) as fout:
+                        std, mean = float(ref.std()), float(ref.mean())
+                        for start in range(pad, pad + wav.shape[-1], block_frames):
+                            stop = min(start + block_frames, pad + wav.shape[-1])
+                            block = arr[:, start:stop].astype(np.float32)
+                            block *= std
+                            block += mean
+                            fout.write(block.T)
+                    stems[name] = str(stem_path)
+                finally:
+                    del arr  # release the memmap handle (Windows rmtree below)
         finally:
-            for path in raw_paths:
-                Path(path).unlink(missing_ok=True)
-            tmp_dir = out_dir / ".chunked"
-            try:
-                tmp_dir.rmdir()
-            except OSError:
-                pass
+            shutil.rmtree(tmp_dir, ignore_errors=True)
         del wav, ref
     else:
         with torch.no_grad():
@@ -199,20 +249,26 @@ def separate(
     if transcribe_stems:
         from .transcribe import transcribe
 
+        # detect tempo once on the mixture and share it with every stem:
+        # faster than per-stem detection and keeps all parts on one beat grid
+        shared = (
+            shared_tempo_info(src, fallback_tempo=tempo, fallback_signature=time_signature)
+            if auto_tempo
+            else None
+        )
+        stem_tempo = shared["tempo"] if shared else float(tempo)
+        stem_signature = shared["time_signature"] if shared else time_signature
+        stem_beats = shared["beats"] if shared else None
+
         transcriptions = {}
         for name, path in stems.items():
             try:
-                info = None
-                if auto_tempo:
-                    from .beats import detect_beats
-
-                    info = detect_beats(path)
                 proj = transcribe(
                     path,
                     model="basicpitch",
-                    tempo=info["tempo"] if info else tempo,
-                    time_signature=info["time_signature"] if info else time_signature,
-                    beats=info["beats"] if info else None,
+                    tempo=stem_tempo,
+                    time_signature=stem_signature,
+                    beats=stem_beats,
                     quantize_beats=int(quantize_beats) or None,
                 )
                 proj_path = out_dir / f"{name}.mfproj.json"
@@ -221,8 +277,8 @@ def separate(
 
                 midi_path = to_midi(proj, out_dir / f"{name}.mid")
                 entry = {"notes": len(proj.notes), "project": str(proj_path), "midi": str(midi_path)}
-                if info:
-                    entry["tempo"] = info["tempo"]
+                if shared:
+                    entry["tempo"] = shared["tempo"]
                 transcriptions[name] = entry
             except Exception as exc:  # keep separation usable even if a stem is silent
                 transcriptions[name] = {"error": str(exc)}

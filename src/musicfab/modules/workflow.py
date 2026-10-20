@@ -24,13 +24,10 @@ from pathlib import Path
 
 
 def _auto_tempo_info(src: Path) -> tuple[float, str, list[float] | None]:
-    try:
-        from .beats import detect_beats
+    from .separate import shared_tempo_info
 
-        info = detect_beats(src)
-        return float(info["tempo"]), str(info["time_signature"]), list(info["beats"])
-    except Exception:
-        return 120.0, "4/4", None
+    info = shared_tempo_info(src)
+    return info["tempo"], info["time_signature"], info["beats"]
 
 
 def _render_score(project_path: Path, out: Path, stem: str, fmt: str) -> str:

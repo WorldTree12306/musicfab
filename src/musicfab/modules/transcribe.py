@@ -18,6 +18,7 @@ Both backends are offline after their model files are present.
 from __future__ import annotations
 
 import contextlib
+import functools
 from pathlib import Path
 
 from ..core.export import to_midi, to_musicxml
@@ -70,6 +71,25 @@ def _merge_same_pitch(notes: list[Note], gap: float = 0.03, tail_seconds: float 
 from ..core.grid import snap_to_beat_grid as _snap_to_beat_grid
 
 
+@functools.lru_cache(maxsize=1)
+def _basicpitch_model():
+    """Load the Basic Pitch ONNX model once and reuse it for every call.
+
+    ``basic_pitch.inference.predict`` accepts a pre-built ``Model`` instance
+    (its second parameter is ``model_or_model_path``), so caching the instance
+    avoids re-creating an onnxruntime ``InferenceSession`` per stem/file.
+    """
+    from basic_pitch import ICASSP_2022_MODEL_PATH
+    from basic_pitch.inference import Model
+
+    return Model(ICASSP_2022_MODEL_PATH)
+
+
+def basicpitch_model_cached() -> bool:
+    """Return True when the ONNX model/session is already cached (test hook)."""
+    return _basicpitch_model.cache_info().currsize > 0
+
+
 def _basicpitch_notes(
     audio: Path,
     *,
@@ -78,12 +98,11 @@ def _basicpitch_notes(
     min_note_ms: float = 50.0,
 ) -> list[Note]:
     with _quiet():
-        from basic_pitch import ICASSP_2022_MODEL_PATH
         from basic_pitch.inference import predict
 
         _model_output, _midi_data, note_events = predict(
             str(audio),
-            ICASSP_2022_MODEL_PATH,
+            _basicpitch_model(),
             onset_threshold=onset_threshold,
             frame_threshold=frame_threshold,
             minimum_note_length=min_note_ms,

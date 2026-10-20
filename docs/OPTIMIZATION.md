@@ -16,17 +16,22 @@
 
 新增测试：`tests/test_multipage_notation.py`（3 项：多页 PDF 逐页非空白、SVG/PNG 分页文件、stderr 页数提示）、`tests/test_batch2_fixes.py`（11 项：schema/NaN/错误上下文/别名/doctor/单次推理/合并顺序）。
 
+## 已修复（0.2.0）
+
+| # | 问题 | 修复 |
+|---|---|---|
+| 2 | 排版 MIDI 往返 | music21 直接构造（Part/partName/tempo/拍号，tie 拆分，16 分网格，输入不改） |
+| 3 | 重复测速与模型加载 | mixture 测速一次共享；Basic Pitch 模型缓存 |
+| 4 | 分块分离内存/边界/清理 | 两侧 reflect-pad、就地除法、memmap 分块流式写、异常清理 `.chunked` |
+
 ## 待处理（按收益排序）
 
 | # | 问题 | 建议 | 工作量 |
 |---|---|---|---|
-| 2 | `to_musicxml` 的 MIDI 往返：丢 beats 变速信息、music21 默认再量化、原地改输入 | 直接用 music21 构造 `Part`/`Note` 后 `makeNotation()`；`beats` 非空时插入速度标记；MIDI 往返降为 fallback | M |
-| 3 | 每个 stem 独立测速 + 每次重建 ONNX 会话 | 在 mixture 上测速一次传给所有 stem；模块级缓存 Basic Pitch 模型 | S-M |
-| 4 | 分块分离整轨除法物化、首尾无 padding、异常残留 `.chunked/*.f32` | 就地广播除法；reflect-pad 首尾；异常时清理临时目录 | M |
 | 11 | CI 无 pip 缓存；`[transcribe]` extra 装不出转谱；spec 硬编码本机路径 | setup-python 加 `cache: pip`；新增 `transcribe-onnx` extra；spec 路径用 `sysconfig` | S |
 | 12 | 发布物许可声明：便携包捆绑 PyMuPDF（AGPL）/resvg（MPL），LICENSES 有死条目 | release 附第三方许可文本与源码链接；清理 LICENSES | S-M |
 
 ## 备注
 
 - 便携 exe 的 numba 限制、无 ffmpeg、下拍启发式、和弦逐音重合成伪影为已知且接受项，不在本清单。
-- 后续每批修复都应保持 `pytest -q` 全绿（当前 58 项）。
+- 后续每批修复都应保持 `pytest -q` 全绿（当前 65 项）。
