@@ -18,13 +18,13 @@ dependencies = [
 
 [project.optional-dependencies]
 core = ["mido>=1.3", "music21>=9", "librosa>=0.10", "pretty_midi>=0.2"]
-transcribe = ["mir_eval>=0.7", "scikit-learn>=1.3", "resampy>=0.4.2,<0.4.3", "onnxruntime>=1.16", "setuptools"]
+transcribe = ["mir_eval>=0.7", "scikit-learn>=1.3", "resampy>=0.4.2,<0.4.3", "onnxruntime>=1.16", "setuptools>=65,<81"]
 separate = ["demucs==4.0.1", "dora-search", "openunmix", "einops", "julius>=0.2.3", "lameenc>=1.2", "pyyaml", "tqdm"]
 tab = ["pyguitarpro>=0.11"]
 render = ["verovio>=4.3"]
 pdf = ["pymupdf>=1.24", "resvg-py>=0.3"]
 gui = ["PySide6>=6.6"]
-dev = ["pytest>=8", "mido>=1.3", "music21>=9", "librosa>=0.10", "pretty_midi>=0.2", "setuptools"]
+dev = ["pytest>=8", "mido>=1.3", "music21>=9", "librosa>=0.10", "pretty_midi>=0.2", "setuptools>=65,<81"]
 
 [project.scripts]
 musicfab = "musicfab.cli:main"

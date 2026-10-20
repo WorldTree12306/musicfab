@@ -23,7 +23,7 @@ jobs:
           python -m pip install -e ".[dev]"
       - name: Install ONNX transcription backend (no TensorFlow)
         run: |
-          python -m pip install setuptools onnxruntime
+          python -m pip install "setuptools>=65,<81" onnxruntime
           python -m pip install basic-pitch --no-deps
           python -m pip install mir_eval scikit-learn "resampy>=0.4.2,<0.4.3"
       - name: Generate test audio
