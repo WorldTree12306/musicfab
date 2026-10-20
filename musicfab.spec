@@ -1,4 +1,12 @@
 # -*- mode: python ; coding: utf-8 -*-
+# musicfab portable (lite) build recipe — the single canonical spec file.
+#
+# Usage (from the repository root):
+#   python -m PyInstaller --noconfirm --clean musicfab.spec
+#
+# Produces dist/musicfab.exe (onefile, no torch/demucs/PySide6).
+# scripts/build_portable.ps1 wraps this call and additionally bundles
+# THIRD_PARTY_NOTICES.md into a versioned zip for release.
 from PyInstaller.utils.hooks import collect_data_files
 from PyInstaller.utils.hooks import collect_submodules
 

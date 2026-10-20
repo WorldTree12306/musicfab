@@ -19,7 +19,7 @@ musicfab version
 
 | 模块 | 安装命令 | 首次联网？ |
 |---|---|---|
-| transcribe（AnthemScore） | `pip install basic-pitch --no-deps` + `pip install mir_eval scikit-learn "resampy>=0.4.2,<0.4.3"` | 否（ONNX 模型随包） |
+| transcribe（AnthemScore） | `pip install -e ".[transcribe-onnx]"` + `pip install basic-pitch --no-deps` | 否（ONNX 模型随包） |
 | transcribe 钢琴增强 | `pip install piano_transcription_inference` | 是（首次下载权重） |
 | practice / shift | `pip install librosa` | 否 |
 | separate（RipX） | `pip install "demucs==4.0.1" --no-deps` + `pip install dora-search openunmix einops julius lameenc pyyaml tqdm` | 是（首次下载 80 MB htdemucs 权重） |
@@ -28,6 +28,8 @@ musicfab version
 | tab（Guitar Pro） | `pip install pyguitarpro` | 否 |
 
 > Demucs 需要 torch：`pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu`（CPU 版约 200 MB）。
+>
+> 转谱说明：`[transcribe-onnx]` extra 提供 ONNX 转谱的全部运行依赖（mir_eval / scikit-learn / resampy / onnxruntime / setuptools 约束）；`basic-pitch` 本体因 PyPI 上声明 TensorFlow 依赖（Windows/py3.11+），需 `--no-deps` 单独安装以避免约 600 MB 的 TensorFlow——实测 ONNX 后端完全可用。`[transcribe]` 是 `[transcribe-onnx]` 的等价别名（历史兼容）。
 
 ## 2.5 图形界面（可选）
 
@@ -45,7 +47,7 @@ musicfab gui song.wav
 python scripts/gen_test_audio.py      # 生成合成测试音频
 python scripts/fetch_fixtures.py      # 可选：下载 .gp5 样例（PyGuitarPro 测试集）
 musicfab doctor                       # 环境自检（JSON）
-python -m pytest -q                   # 65 tests
+python -m pytest -q                   # 67 tests
 python examples/demo.py               # 端到端演示 -> build/demo/
 
 逐音编辑（Melodyne 式）：
@@ -71,11 +73,11 @@ notation:   MusicXML -> SVG                             0.3s
 ## 4. 便携包（可选）
 
 ```powershell
-pip install pyinstaller
-pyinstaller -n musicfab --onefile --collect-submodules musicfab src/musicfab/__main__.py
+powershell -ExecutionPolicy Bypass -File scripts/build_portable.ps1
 ```
 
-- 轻量包（只含 transcribe/practice/shift/notation/tab）：约 60–80 MB。
+- 产物：`dist/musicfab.exe`（lite onefile，约 185 MB）+ `dist/THIRD_PARTY_NOTICES.md` + `dist/musicfab-<version>-win64.zip`；
+- 构建走 `musicfab.spec`（含 numba runtime hook 与 basic_pitch/music21/verovio 数据）；
 - 含 torch/demucs 的完整包会到 1 GB 以上；建议用「程序 + 首次运行时下载权重」的方式分发。
 
 ## 5. PDF/PNG 导出与 MuseScore（可选）
@@ -97,7 +99,7 @@ musicfab 只通过子进程调用 MuseScore，不做链接，避免 GPL 传染�
 
 ## 7. 便携 exe（lite）实测范围
 
-构建产物：`dist/musicfab.exe`（约 155 MB，onefile）。本机实测：
+发布资产：`dist/musicfab-<version>-win64.zip`（内含 `musicfab.exe` 与 `THIRD_PARTY_NOTICES.md`），exe 约 185 MB。本机实测：
 
 | 子命令 | 便携包 | 说明 |
 |---|---|---|

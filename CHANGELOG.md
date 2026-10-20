@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0 — 2026-10-20
+
+收尾批次（GLM 审查 #11/#12，优化清单 12/12）：
+
+- **CI**：`actions/setup-python` 启用 pip 缓存（`pyproject.toml`）、job `timeout-minutes: 30`；保留失败注解与依赖版本 notice
+- **打包**：`musicfab.spec` 成为唯一规范配方（顶部注明用法）；删除硬编码本机路径的实验 `musicfab_onedir.spec`；`build_portable.ps1` 改走 spec、使用当前解释器、构建后自动生成许可通知并打成 `dist/musicfab-<version>-win64.zip`
+- **安装**：新增 `transcribe-onnx` extra（与 `transcribe` 等价，含 onnxruntime、setuptools 约束）；INSTALL 说明 `basic-pitch --no-deps` 的 ONNX 安装方式
+- **许可证**：新增 `scripts/collect_licenses.py` 生成 `THIRD_PARTY_NOTICES.md`（含 Demucs 权重 CC-BY-4.0 与 PyMuPDF AGPL / resvg MPL 义务）；`LICENSES.md` 清理死条目；`RELEASE.md` 明确 zip 资产与源码链接
+- 测试：65 → 67 项
+
 ## 0.2.0 — 2026-10-20
 
 优化批次二（GLM 审查 #2/#3/#4）：

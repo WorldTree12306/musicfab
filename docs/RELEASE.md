@@ -20,7 +20,14 @@
 
 - [ ] `docs/` 配图有效：`gui.png`、`tab.png`、`score.png`
 - [ ] `CHANGELOG.md` 更新
-- [ ] 便携包（可选）：`scripts/build_portable.ps1` 生成 `dist/musicfab.exe`，验证 `version/probe/transcribe/notation/tab`
+- [ ] 便携包（可选）：`powershell -ExecutionPolicy Bypass -File scripts/build_portable.ps1`
+      - 产出 `dist/musicfab.exe` 与发布资产 **`dist/musicfab-<version>-win64.zip`**
+        （zip 内含 `musicfab.exe` + `THIRD_PARTY_NOTICES.md`）；
+      - 验证 zip 内两个文件齐全，exe 的 `version/probe/transcribe/notation/tab` 冒烟；
+      - **许可证义务**：zip 捆绑了 PyMuPDF（AGPL-3.0）与 resvg-py（MPL-2.0）。
+        Release notes 必须引用 zip 内的 `THIRD_PARTY_NOTICES.md`，并给出本仓库源码链接
+        与 PyMuPDF / resvg 上游源码链接（AGPL 接收者可据此索取对应源码；MPL 满足文件级归属）。
+        Demucs 权重（CC-BY-4.0）不随 zip 分发，Release notes 注明来源 URL。
 
 ## 4. 发布
 
