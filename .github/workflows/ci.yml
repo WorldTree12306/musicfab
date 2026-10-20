@@ -23,7 +23,7 @@ jobs:
           python -m pip install -e ".[dev]"
       - name: Install ONNX transcription backend (no TensorFlow)
         run: |
-          python -m pip install onnxruntime
+          python -m pip install setuptools onnxruntime
           python -m pip install basic-pitch --no-deps
           python -m pip install mir_eval scikit-learn "resampy>=0.4.2,<0.4.3"
       - name: Generate test audio
@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          python -m pytest -q -m "not slow" -x --tb=short --color=no 2>&1 | tee pytest.log
+          python -m pytest -q -m "not slow" --tb=short --color=no 2>&1 | tee pytest.log
           rc=${PIPESTATUS[0]}
           if [ "$rc" -ne 0 ]; then
             python scripts/ci_annotate.py pytest.log
