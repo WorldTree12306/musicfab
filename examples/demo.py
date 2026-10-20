@@ -77,7 +77,7 @@ def main() -> int:
     t0 = time.time()
     from musicfab.modules.notes import apply_edits, write_template
 
-    edits = write_template(src, OUT / "demo_edits.json")
+    edits, _detected = write_template(src, OUT / "demo_edits.json")
     import json as _json
 
     table = _json.loads(edits.read_text(encoding="utf-8"))

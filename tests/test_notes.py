@@ -35,11 +35,12 @@ def test_detect_notes_and_template(tmp_path: Path):
     src = _melody(tmp_path)
     notes = detect_notes(src)
     assert len(notes) >= 4
-    tpl = write_template(src, tmp_path / "edits.json")
+    tpl, detected = write_template(src, tmp_path / "edits.json")
     data = json.loads(tpl.read_text(encoding="utf-8"))
     assert len(data["notes"]) >= 4
     assert len(data["edits"]) == len(data["notes"])
     assert all(e["semitones"] == 0 for e in data["edits"])
+    assert len(detected) == len(data["notes"])
 
 
 def test_apply_pitch_edit_moves_only_that_note(tmp_path: Path):

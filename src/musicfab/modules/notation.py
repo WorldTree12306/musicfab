@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import sys
+import tempfile
 from pathlib import Path
 
 MUSESCORE_NAMES = ("musescore4", "musescore3", "musescore", "mscore", "MuseScore4", "MuseScore3")
@@ -66,7 +68,8 @@ def _render_with_musescore(src: Path, dst: Path) -> Path:
     return dst
 
 
-def _render_svg_with_verovio(src: Path, dst: Path) -> Path:
+def _render_verovio_svgs(src: Path) -> list[str]:
+    """Render *every* page of ``src`` with Verovio (one SVG string per page)."""
     try:
         import verovio
     except ImportError as exc:  # pragma: no cover - handled by caller
@@ -75,10 +78,117 @@ def _render_svg_with_verovio(src: Path, dst: Path) -> Path:
     tk.setOptions({"pageWidth": 2100, "pageHeight": 2970, "scale": 40})
     if not tk.loadFile(str(src)):
         raise RuntimeError(f"Verovio could not load {src.name} (MusicXML/MEI expected)")
-    svg = tk.renderToSVG(1)
-    if not svg:
+    try:
+        count = int(tk.getPageCount())
+    except Exception:  # noqa: BLE001 - older toolkits may lack getPageCount
+        count = 1
+    pages = [str(tk.renderToSVG(i)) for i in range(1, max(1, count) + 1)]
+    pages = [p for p in pages if p]
+    if not pages:
         raise RuntimeError("Verovio produced empty SVG")
-    dst.write_text(svg, encoding="utf-8")
+    return pages
+
+
+def _render_svg_with_verovio(src: Path, dst: Path) -> Path:
+    """Write page 1 of ``src`` to ``dst`` (single-page compatibility helper)."""
+    dst.write_text(_render_verovio_svgs(src)[0], encoding="utf-8")
+    return dst
+
+
+def _page_path(first: Path, index: int) -> Path:
+    """Sibling path for an extra page: ``score.png`` -> ``score_p2.png``."""
+    return first.with_name(f"{first.stem}_p{index}{first.suffix}")
+
+
+def _svg_pages_to_pngs(pages: list[str], dpi: int = 200) -> list[bytes] | None:
+    """Rasterise every SVG page with resvg; ``None`` when resvg is unavailable."""
+    try:
+        import resvg_py
+    except ImportError:  # pragma: no cover - optional dependency
+        return None
+    zoom = max(0.5, dpi / 96.0)
+    out: list[bytes] = []
+    with tempfile.TemporaryDirectory() as tmp:
+        for i, svg in enumerate(pages, start=1):
+            p = Path(tmp) / f"page{i}.svg"
+            p.write_text(svg, encoding="utf-8")
+            data = resvg_py.svg_to_bytes(
+                svg_path=str(p), background="#ffffff", zoom=zoom, skip_system_fonts=False
+            )
+            png = bytes(data)
+            if not png.startswith(b"\x89PNG"):
+                raise RuntimeError("resvg did not produce a PNG")
+            out.append(png)
+    return out
+
+
+def _pngs_to_pdf(png_pages: list[bytes], dst: Path) -> Path:
+    """Combine per-page PNG rasters into one PDF (page size = image size)."""
+    try:
+        import pymupdf
+    except ImportError as exc:  # pragma: no cover - optional dependency
+        raise RuntimeError("PyMuPDF not installed (pip install pymupdf)") from exc
+
+    doc = pymupdf.open()
+    try:
+        for png in png_pages:
+            img = pymupdf.open(stream=png, filetype="png")
+            try:
+                pdf_bytes = img.convert_to_pdf()
+            finally:
+                img.close()
+            page = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+            try:
+                doc.insert_pdf(page)
+            finally:
+                page.close()
+        doc.save(str(dst))
+    finally:
+        doc.close()
+    return dst
+
+
+def _svg_pages_via_mupdf(pages: list[str], dpi: int = 200) -> list[bytes]:
+    """Fallback PNG rasterisation via MuPDF's SVG parser (no ``<use>`` resolution)."""
+    import pymupdf
+
+    zoom = dpi / 72.0
+    out: list[bytes] = []
+    for svg in pages:
+        src = pymupdf.open(stream=svg.encode("utf-8"), filetype="svg")
+        try:
+            pdf_bytes = src.convert_to_pdf()
+        finally:
+            src.close()
+        page = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+        try:
+            pix = page[0].get_pixmap(matrix=pymupdf.Matrix(zoom, zoom), alpha=False)
+            out.append(pix.tobytes("png"))
+        finally:
+            page.close()
+    return out
+
+
+def _svg_pages_to_pdf_mupdf(pages: list[str], dst: Path) -> Path:
+    """Fallback PDF assembly directly from SVG pages via MuPDF's SVG parser."""
+    import pymupdf
+
+    doc = pymupdf.open()
+    try:
+        for svg in pages:
+            src = pymupdf.open(stream=svg.encode("utf-8"), filetype="svg")
+            try:
+                pdf_bytes = src.convert_to_pdf()
+            finally:
+                src.close()
+            page = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+            try:
+                doc.insert_pdf(page)
+            finally:
+                page.close()
+        doc.save(str(dst))
+    finally:
+        doc.close()
     return dst
 
 
@@ -92,6 +202,12 @@ def convert(
     """Convert a score file.
 
     ``fmt``: ``musicxml`` | ``midi`` | ``svg`` | ``png`` | ``pdf``.
+
+    Multi-page scores (Verovio paginates long input) are handled as follows:
+    ``pdf`` composes *all* pages into one document; ``svg``/``png`` write the
+    first page to ``output`` and any further pages to ``<stem>_p2.<ext>``,
+    ``<stem>_p3.<ext>`` ... next to it (a notice with the page count goes to
+    stderr).  The first-page path is always the return value.
     """
     src = Path(input_path)
     dst = Path(output)
@@ -128,33 +244,62 @@ def convert(
         return _to_midi(src, dst)
 
     # rendering formats: prefer MuseScore (best engraving), then Verovio SVG
-    # + PyMuPDF (pure-python, no system libraries), then cairosvg.
+    # pages + resvg/PyMuPDF (pure-python, no system libraries), then cairosvg.
     if shutil.which("musescore4") or shutil.which("musescore") or find_musescore():
         try:
             return _render_with_musescore(src, dst)
         except RuntimeError:
             pass
 
-    svg_path = dst.with_suffix(".svg") if fmt != "svg" else dst
     try:
-        _render_svg_with_verovio(src, svg_path)
+        pages = _render_verovio_svgs(src)
     except RuntimeError:
         # last resort: convert to musicxml first, then try Verovio again
         tmp_xml = dst.with_suffix(".tmp.musicxml")
         _to_musicxml(src, tmp_xml)
         try:
-            _render_svg_with_verovio(tmp_xml, svg_path)
+            pages = _render_verovio_svgs(tmp_xml)
         finally:
             tmp_xml.unlink(missing_ok=True)
+
+    svg_path = dst.with_suffix(".svg") if fmt != "svg" else dst
+    svg_path.write_text(pages[0], encoding="utf-8")
+    if fmt == "svg":
+        for i, svg in enumerate(pages[1:], start=2):
+            _page_path(svg_path, i).write_text(svg, encoding="utf-8")
+
+    if len(pages) > 1:
+        if fmt in {"svg", "png"}:
+            extra = f"; extra pages: {_page_path(dst, 2).name}, ..."
+        else:
+            extra = f"; page-1 SVG: {svg_path.name}"
+        print(f"notation: {src.name} rendered on {len(pages)} pages{extra}", file=sys.stderr)
 
     if fmt == "svg":
         return svg_path
 
-    # PDF / PNG from the rendered SVG.  PyMuPDF is a self-contained wheel
-    # (MuPDF) that handles Verovio SVG well and needs no system cairo.
+    pngs = _svg_pages_to_pngs(pages)
+    if pngs is not None:
+        if fmt == "png":
+            dst.write_bytes(pngs[0])
+            for i, data in enumerate(pngs[1:], start=2):
+                _page_path(dst, i).write_bytes(data)
+            return dst
+        try:
+            return _pngs_to_pdf(pngs, dst)
+        except RuntimeError:
+            pass  # fall through to the MuPDF/cairosvg fallbacks below
+
+    # Fallback rasterisation without resvg (works for SVGs without <use> refs).
     try:
-        return _svg_to_raster_or_pdf(svg_path, dst, fmt)
-    except RuntimeError:
+        if fmt == "pdf":
+            return _svg_pages_to_pdf_mupdf(pages, dst)
+        pngs = _svg_pages_via_mupdf(pages)
+        dst.write_bytes(pngs[0])
+        for i, data in enumerate(pngs[1:], start=2):
+            _page_path(dst, i).write_bytes(data)
+        return dst
+    except Exception:  # noqa: BLE001 - last resort below
         pass
 
     try:
@@ -170,6 +315,11 @@ def convert(
         cairosvg.svg2pdf(url=str(svg_path), write_to=str(dst))
     else:
         raise ValueError(f"unsupported render format: {fmt}")
+    if len(pages) > 1:
+        print(
+            f"notation: warning: cairosvg fallback rendered only page 1 of {len(pages)}",
+            file=sys.stderr,
+        )
     return dst
 
 

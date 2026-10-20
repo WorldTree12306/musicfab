@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.1 — 2026-10-20
+
+优化批次一（GLM 审查后修复）：
+
+- notation：修复 **Verovio 只渲染第 1 页**，长曲 PDF 现在包含全部页；SVG/PNG 第 2 页起写 `<stem>_pN` 并在 stderr 报告页数
+- project：`from_notes` 支持顶层 `audio`/`beats` 字段；`Project.load` 对 note/track/tempo/beats 给出带文件路径的错误
+- audio：读写前校验 NaN/Inf，坏音频不再产生静默垃圾
+- transcribe：同音碎片合并在量化之前执行（量化路径下谱面更干净）
+- beats：onset 包络只计算一次（拍点/八度校共享），减少重复特征提取
+- notes：模板模式只跑一次模型推理
+- cli：`practice --speed` 作为 `--tempo` 的等价别名
+- doctor：`transcribe` 需 basic-pitch+onnxruntime；新增 `pti`；`pdf` 识别 cairosvg/MuseScore 备选
+- 测试：44 → 58 项
+
 ## 0.1.0 — 2026-10-19
 
 首个可运行版本：六个商业音乐软件的开源替代（个人非商用场景）。
@@ -34,7 +48,7 @@
 - 统一 `.mfproj.json` 工程格式（tempo/time_signature/beats/tracks）
 - CLI：`version/probe/transcribe/practice/shift/notes/beats/separate/daw/notation/tab/gui`
 - 端到端 demo（`examples/demo.py`）、测试夹具生成/下载脚本
-- 43 项 pytest、GitHub Actions CI（Windows/Linux × py3.11/3.12）
+- 58 项 pytest、GitHub Actions CI（Windows/Linux × py3.11/3.12）
 - 文档：README / INSTALL / PLAN / LICENSES / COMPAT / REVIEW
 
 ### 修复

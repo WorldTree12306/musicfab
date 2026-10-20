@@ -18,11 +18,14 @@ OPTIONAL = {
     "librosa": "practice/shift/beats/notes",
     "pretty_midi": "MIDI helpers",
     "basic_pitch": "transcription backend (ONNX)",
+    "onnxruntime": "ONNX runtime for basic-pitch",
+    "piano_transcription_inference": "piano transcription backend (pti)",
     "torch": "demucs separation / optional PTI",
     "demucs": "stem separation",
     "verovio": "score SVG rendering",
     "pymupdf": "PDF/PNG export",
     "resvg_py": "Verovio SVG rasterisation",
+    "cairosvg": "fallback SVG rasterisation (PDF/PNG)",
     "guitarpro": "Guitar Pro import",
     "PySide6": "GUI (musicfab gui)",
     "resampy": "basic-pitch dependency",
@@ -70,6 +73,14 @@ def _ffmpeg() -> str | None:
         return None
 
 
+def _musescore_available() -> bool:
+    try:
+        from .notation import find_musescore
+    except Exception:  # noqa: BLE001 - report, never raise
+        return False
+    return find_musescore() is not None
+
+
 def _collect_impl() -> dict:
     required = {name: _check(name) for name in REQUIRED}
     optional = {name: {**_check(name), "purpose": purpose} for name, purpose in OPTIONAL.items()}
@@ -85,14 +96,21 @@ def _collect_impl() -> dict:
     }
     features = {
         "probe": required["soundfile"]["available"],
-        "transcribe": optional["basic_pitch"]["available"] or optional["torch"]["available"],
+        "transcribe": optional["basic_pitch"]["available"] and optional["onnxruntime"]["available"],
+        "pti": optional["piano_transcription_inference"]["available"],
         "practice": optional["librosa"]["available"],
         "shift": optional["librosa"]["available"],
         "notes": optional["basic_pitch"]["available"] and optional["librosa"]["available"],
         "beats": optional["librosa"]["available"],
         "separate": optional["torch"]["available"] and optional["demucs"]["available"],
         "notation": optional["music21"]["available"],
-        "pdf": optional["verovio"]["available"] and optional["resvg_py"]["available"] and optional["pymupdf"]["available"],
+        "pdf": (
+            optional["verovio"]["available"]
+            and optional["resvg_py"]["available"]
+            and optional["pymupdf"]["available"]
+        )
+        or optional["cairosvg"]["available"]
+        or _musescore_available(),
         "tab": optional["guitarpro"]["available"],
         "gui": optional["PySide6"]["available"],
     }

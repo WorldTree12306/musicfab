@@ -64,9 +64,17 @@ def probe(path: str | Path) -> dict:
     return info
 
 
+def _ensure_finite(data: np.ndarray, path: str | Path) -> None:
+    """Reject NaN/Inf samples early instead of producing garbage downstream."""
+    if not bool(np.isfinite(data).all()):
+        raise ValueError(f"{path}: audio contains NaN/Inf")
+
+
 def load(path: str | Path, sample_rate: int | None = None, mono: bool = True) -> tuple[np.ndarray, int]:
     """Load audio as float32 [frames, channels] (or [frames] when mono)."""
     path = Path(path)
+    data = None
+    sr = 0
     if sf is not None:
         try:
             data, sr = sf.read(str(path), dtype="float32", always_2d=True)
@@ -75,9 +83,11 @@ def load(path: str | Path, sample_rate: int | None = None, mono: bool = True) ->
                 sr = sample_rate
             if mono:
                 data = data.mean(axis=1)
-            return data, sr
         except Exception:
-            pass
+            data = None  # fall back to ffmpeg decoding below
+    if data is not None:
+        _ensure_finite(data, path)
+        return data, sr
     exe = _ffmpeg()
     if not exe:
         raise RuntimeError("cannot decode audio: install soundfile or ffmpeg/imageio-ffmpeg")
@@ -91,12 +101,14 @@ def load(path: str | Path, sample_rate: int | None = None, mono: bool = True) ->
         cmd += [str(wav)]
         subprocess.run(cmd, check=True, timeout=600)
         data, sr = sf.read(str(wav), dtype="float32", always_2d=False)
+        _ensure_finite(data, path)
         return data, sr
 
 
 def write(path: str | Path, data: np.ndarray, sample_rate: int) -> None:
     if sf is None:
         raise RuntimeError("soundfile is required to write audio")
+    _ensure_finite(np.asarray(data), path)
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     sf.write(str(path), data, sample_rate)
 

@@ -13,13 +13,16 @@ import numpy as np
 
 
 
-def _fix_tempo_octave(y, sr: int, tempo: float, hop: int = 512) -> float:
-    """Correct common half/double tempo errors using onset autocorrelation."""
+def _fix_tempo_octave(onset_env: np.ndarray, sr: int, tempo: float, hop: int = 512) -> float:
+    """Correct common half/double tempo errors using onset autocorrelation.
+
+    ``onset_env`` is the (already computed) onset envelope shared with
+    :func:`detect_beats` so it is not recomputed here.
+    """
     import librosa
 
     if tempo <= 0:
         return tempo
-    onset_env = librosa.onset.onset_strength(y=y, sr=sr, hop_length=hop)
     if onset_env.size < 8:
         return tempo
 
@@ -96,14 +99,23 @@ def detect_beats(
     if not src.exists():
         raise FileNotFoundError(src)
     y, _ = librosa.load(str(src), sr=sample_rate, mono=True)
+    hop = 512
+    # compute the onset envelope once and share it with beat tracking and the
+    # tempo-octave correction (previously each computed it independently)
+    onset_env = librosa.onset.onset_strength(y=y, sr=sample_rate, hop_length=hop)
     tempo, beat_times = librosa.beat.beat_track(
-        y=y, sr=sample_rate, start_bpm=float(start_bpm), tightness=float(tightness), units="time"
+        onset_envelope=onset_env,
+        sr=sample_rate,
+        hop_length=hop,
+        start_bpm=float(start_bpm),
+        tightness=float(tightness),
+        units="time",
     )
     tempo_value = float(np.atleast_1d(tempo)[0])
     if not np.isfinite(tempo_value) or tempo_value <= 0:
         tempo_value = float(start_bpm)
     else:
-        tempo_value = _fix_tempo_octave(y, sample_rate, tempo_value)
+        tempo_value = _fix_tempo_octave(onset_env, sample_rate, tempo_value, hop=hop)
     beats = [round(float(t), 4) for t in np.atleast_1d(beat_times)]
     per_bar = max(1, int(beats_per_bar))
     phase, confidence = _downbeat_phase(y, sample_rate, beats, per_bar)

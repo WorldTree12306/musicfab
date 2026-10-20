@@ -63,8 +63,12 @@ def write_template(
     output: str | Path,
     *,
     model: str = "basicpitch",
-) -> Path:
-    """Detect notes and write an editable JSON table (all edits are no-ops)."""
+) -> tuple[Path, list[Note]]:
+    """Detect notes once and write an editable JSON table (all edits are no-ops).
+
+    Returns ``(table_path, notes)`` so callers can reuse the detection result
+    instead of running the model a second time.
+    """
     notes = detect_notes(audio, model=model)
     data = {
         "audio": str(audio),
@@ -90,7 +94,7 @@ def write_template(
     dst = Path(output)
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text(json.dumps(data, indent=1, ensure_ascii=False), encoding="utf-8")
-    return dst
+    return dst, notes
 
 
 def _load_edits(path: str | Path) -> list[NoteEdit]:

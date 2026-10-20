@@ -106,7 +106,7 @@ def cmd_shift(args: argparse.Namespace) -> int:
 
 
 def cmd_notes(args: argparse.Namespace) -> int:
-    from .modules.notes import apply_edits, detect_notes, write_template
+    from .modules.notes import apply_edits, write_template
 
     if args.edits:
         stats = apply_edits(args.audio, args.edits, output=args.output, model=args.model)
@@ -114,9 +114,8 @@ def cmd_notes(args: argparse.Namespace) -> int:
         return 0
 
     edits_path = args.output if args.output and args.output.endswith(".json") else Path(args.audio).with_suffix(".edits.json")
-    tpl = write_template(args.audio, edits_path, model=args.model)
-    notes = detect_notes(args.audio, model=args.model)
-    print(f"detected {len(notes)} notes; editable table: {tpl}")
+    tpl, detected = write_template(args.audio, edits_path, model=args.model)
+    print(f"detected {len(detected)} notes; editable table: {tpl}")
     print("edit the JSON, then run: musicfab notes <audio> --edits <table> -o out.wav")
     return 0
 
@@ -225,7 +224,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     pr = sub.add_parser("practice", help="slow down / transpose / loop for practice (Transcribe! alternative)")
     pr.add_argument("audio")
-    pr.add_argument("--tempo", type=float, default=1.0, help="playback speed, 1.0 = original")
+    pr.add_argument("--speed", "--tempo", dest="tempo", type=float, default=1.0,
+                    help="playback speed, 1.0 = original (--speed and --tempo are equivalent)")
     pr.add_argument("--semitones", type=float, default=0.0)
     pr.add_argument("--loop", nargs=2, type=float, metavar=("START", "END"))
     pr.add_argument("--loop-beats", type=int, help="loop N detected beats")

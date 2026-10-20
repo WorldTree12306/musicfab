@@ -4,7 +4,7 @@ import os
 import sys
 import tempfile
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 # Frozen (PyInstaller) builds: numba cannot create a cache locator inside the
 # one-file bundle, which breaks librosa's JIT-decorated functions.  Disabling

@@ -183,6 +183,10 @@ def transcribe(
             src, onset_threshold=onset_threshold, frame_threshold=frame_threshold, min_note_ms=min_note_ms
         )
 
+    # merge backend fragments before quantization: fragment/tail shapes are
+    # meaningful in raw model time; grid snapping would distort them
+    notes = _merge_same_pitch(notes)
+
     if quantize and quantize > 0:
         q = float(quantize)
         for n in notes:
@@ -208,17 +212,16 @@ def transcribe(
                 n.end = round(n.start + fallback_period / int(quantize_beats), 4)
         beats = beats_list
 
-    notes = _merge_same_pitch(notes)
     proj = Project.from_notes(
         notes,
         name=src.stem,
         tempo=float(tempo),
         time_signature=time_signature,
         audio={"path": str(src)},
+        beats=[round(float(b), 4) for b in (beats or [])],
         backend=backend,
     )
     proj.tracks = [Track(name=src.stem, notes=notes)]
-    proj.beats = [round(float(b), 4) for b in (beats or [])]
 
     if output_midi:
         to_midi(proj, output_midi)
